@@ -3,21 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Or HaLevanah App</title>
+  <title>Or HaLevanah</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="manifest" href="/static/manifest.json">
 </head>
 <body>
   <main class="container">
-    <h1>Or HaLevanah App</h1>
-    <p>Proyecto base en Go para calendario lunar bíblico observacional.</p>
+    <h1>Or HaLevanah</h1>
+    <p class="subtitle">
+      Calendario lunar observacional con referencia en Jerusalén.
+    </p>
 
     <section class="card">
-      <h2>Visión del proyecto</h2>
+      <h2>Base del proyecto</h2>
       <p>
         Esta aplicación mostrará la fase de la luna, el inicio del mes bíblico,
-        las fiestas de Levítico 23 y la comparación entre Jerusalén y la ubicación actual del usuario.
+        la comparación entre Jerusalén y la ubicación actual del usuario,
+        y las fiestas descritas en Levítico 23.
       </p>
+    </section>
+
+    <section class="card">
+      <h2>Endpoints iniciales</h2>
+      <ul>
+        <li><a href="/api/health" target="_blank">/api/health</a></li>
+        <li><a href="/api/jerusalem" target="_blank">/api/jerusalem</a></li>
+      </ul>
     </section>
   </main>
 
