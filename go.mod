@@ -1,0 +1,3 @@
+module or-halevanah
+
+go 1.26.1

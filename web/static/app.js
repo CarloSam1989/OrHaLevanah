@@ -1,0 +1,1 @@
+console.log("Or HaLevanah App iniciada");

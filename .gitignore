@@ -1,0 +1,25 @@
+# Binarios
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Archivos de build
+/bin/
+/dist/
+/build/
+
+# Logs
+*.log
+
+# Variables de entorno
+.env
+
+# Archivos del editor
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
