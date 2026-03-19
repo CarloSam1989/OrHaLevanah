@@ -9,7 +9,6 @@
   <link rel="manifest" href="/static/manifest.json">
 </head>
 <body>
-
   <main class="container">
 
     <h1>Or HaLevanah 🌙</h1>
@@ -17,16 +16,14 @@
       Calendario lunar bíblico observacional basado en Jerusalén
     </p>
 
-    <!-- INFO GENERAL -->
     <section class="card">
       <h2>Estado del sistema</h2>
       <p>
-        Proyecto en desarrollo basado en raíces hebreas.  
+        Proyecto en desarrollo basado en raíces hebreas.
         Cálculo del día bíblico desde el atardecer en Jerusalén.
       </p>
     </section>
 
-    <!-- ENDPOINTS -->
     <section class="card">
       <h2>Endpoints disponibles</h2>
       <ul>
@@ -34,20 +31,24 @@
         <li><a href="/api/jerusalem" target="_blank">/api/jerusalem</a></li>
         <li><a href="/api/moon/jerusalem/today" target="_blank">/api/moon/jerusalem/today</a></li>
         <li><a href="/api/biblical/jerusalem/today" target="_blank">/api/biblical/jerusalem/today</a></li>
+        <li><a href="/api/biblical/jerusalem/month" target="_blank">/api/biblical/jerusalem/month</a></li>
       </ul>
     </section>
 
-    <!-- RESULTADO DINÁMICO -->
     <section class="card">
-      <h2>Información bíblica (Jerusalén)</h2>
-      <button id="btnLoad">Cargar información</button>
+      <h2>Información bíblica diaria</h2>
+      <button id="btnLoadToday">Cargar hoy</button>
+      <pre id="outputToday"></pre>
+    </section>
 
-      <pre id="output"></pre>
+    <section class="card">
+      <h2>Mes bíblico actual</h2>
+      <button id="btnLoadMonth">Cargar mes</button>
+      <pre id="outputMonth"></pre>
     </section>
 
   </main>
 
   <script src="/static/app.js"></script>
-
 </body>
 </html>

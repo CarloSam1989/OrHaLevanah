@@ -1,16 +1,25 @@
-const btn = document.getElementById("btnLoad");
-const output = document.getElementById("output");
+const btnLoadToday = document.getElementById("btnLoadToday");
+const btnLoadMonth = document.getElementById("btnLoadMonth");
+const outputToday = document.getElementById("outputToday");
+const outputMonth = document.getElementById("outputMonth");
 
-btn.addEventListener("click", async () => {
-  output.textContent = "Cargando...";
+async function loadJson(url, outputElement) {
+  outputElement.textContent = "Cargando...";
 
   try {
-    const res = await fetch("/api/biblical/jerusalem/today");
+    const res = await fetch(url);
     const data = await res.json();
-
-    output.textContent = JSON.stringify(data, null, 2);
+    outputElement.textContent = JSON.stringify(data, null, 2);
   } catch (err) {
-    output.textContent = "Error al cargar datos";
+    outputElement.textContent = "Error al cargar datos";
     console.error(err);
   }
+}
+
+btnLoadToday?.addEventListener("click", () => {
+  loadJson("/api/biblical/jerusalem/today", outputToday);
+});
+
+btnLoadMonth?.addEventListener("click", () => {
+  loadJson("/api/biblical/jerusalem/month", outputMonth);
 });

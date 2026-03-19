@@ -111,3 +111,45 @@ func BiblicalJerusalemTodayHandler(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 }
+
+func BiblicalJerusalemMonthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	jerusalem := location.GetJerusalem()
+
+	loc, err := time.LoadLocation(jerusalem.Timezone)
+	if err != nil {
+		http.Error(w, "No se pudo cargar la zona horaria de Jerusalén", http.StatusInternalServerError)
+		return
+	}
+
+	nowJerusalem := time.Now().In(loc)
+	sunset := solar.ApproxSunsetJerusalem(nowJerusalem)
+	afterSunset := biblical.IsAfterSunset(nowJerusalem, sunset)
+	biblicalDate := biblical.GetBiblicalDate(nowJerusalem, sunset)
+
+	moonInfo := lunar.CalculateMoonInfo(nowJerusalem)
+	monthStart := biblical.FindEstimatedMonthStart(nowJerusalem)
+	biblicalDay := biblical.CalculateBiblicalDay(monthStart, nowJerusalem, afterSunset)
+
+	data := models.BiblicalMonthResponse{
+		CivilDate:        nowJerusalem.Format("2006-01-02"),
+		BiblicalDate:     biblicalDate.Format("2006-01-02"),
+		JerusalemTime:    nowJerusalem.Format("2006-01-02 15:04:05"),
+		SunsetTime:       sunset.Format("15:04"),
+		AfterSunset:      afterSunset,
+		MonthStart:       monthStart.Format("2006-01-02"),
+		BiblicalDay:      biblicalDay,
+		IsPossibleDayOne: biblicalDay == 1,
+		Location:         jerusalem,
+		Moon:             moonInfo,
+	}
+
+	response := models.ApiResponse{
+		Success: true,
+		Message: "Mes bíblico calculado correctamente",
+		Data:    data,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}

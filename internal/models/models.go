@@ -36,6 +36,19 @@ type BiblicalTodayResponse struct {
 	Observational ObservationalInfo `json:"observational"`
 }
 
+type BiblicalMonthResponse struct {
+	CivilDate        string   `json:"civil_date"`
+	BiblicalDate     string   `json:"biblical_date"`
+	JerusalemTime    string   `json:"jerusalem_time"`
+	SunsetTime       string   `json:"sunset_time"`
+	AfterSunset      bool     `json:"after_sunset"`
+	MonthStart       string   `json:"month_start"`
+	BiblicalDay      int      `json:"biblical_day"`
+	IsPossibleDayOne bool     `json:"is_possible_day_one"`
+	Location         Location `json:"location"`
+	Moon             MoonInfo `json:"moon"`
+}
+
 type ApiResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
