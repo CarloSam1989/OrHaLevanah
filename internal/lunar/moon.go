@@ -9,8 +9,6 @@ import (
 
 const synodicMonth = 29.53058867
 
-// Fecha de referencia conocida de luna nueva.
-// Se usa como ancla astronómica aproximada.
 var knownNewMoon = time.Date(2000, 1, 6, 18, 14, 0, 0, time.UTC)
 
 func CalculateMoonInfo(t time.Time) models.MoonInfo {
@@ -34,6 +32,22 @@ func CalculateMoonInfo(t time.Time) models.MoonInfo {
 		PhaseName:    phase,
 		LunarDay:     lunarDay,
 	}
+}
+
+func IsPossibleNewMonthObservational(ageDays float64, afterSunset bool) (bool, string) {
+	if !afterSunset {
+		return false, "Aún no es después del atardecer en Jerusalén"
+	}
+
+	if ageDays >= 1.0 && ageDays <= 2.5 {
+		return true, "Posible inicio observacional del mes: luna joven visible potencial después del atardecer"
+	}
+
+	if ageDays < 1.0 {
+		return false, "La luna es demasiado joven para una observación inicial confiable"
+	}
+
+	return false, "La ventana principal de observación inicial del creciente probablemente ya pasó"
 }
 
 func moonAgeDays(t time.Time) float64 {

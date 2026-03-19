@@ -20,6 +20,22 @@ type MoonTodayResponse struct {
 	Moon     MoonInfo `json:"moon"`
 }
 
+type ObservationalInfo struct {
+	PossibleNewMonth bool   `json:"possible_new_month"`
+	VisibilityNote   string `json:"visibility_note"`
+}
+
+type BiblicalTodayResponse struct {
+	CivilDate     string            `json:"civil_date"`
+	BiblicalDate  string            `json:"biblical_date"`
+	JerusalemTime string            `json:"jerusalem_time"`
+	SunsetTime    string            `json:"sunset_time"`
+	AfterSunset   bool              `json:"after_sunset"`
+	Location      Location          `json:"location"`
+	Moon          MoonInfo          `json:"moon"`
+	Observational ObservationalInfo `json:"observational"`
+}
+
 type ApiResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`

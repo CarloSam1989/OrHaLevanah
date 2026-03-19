@@ -52,3 +52,24 @@ a:hover {
 ul {
   padding-left: 20px;
 }
+button {
+  background: #1e3a8a;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 15px;
+}
+
+button:hover {
+  background: #2563eb;
+}
+
+pre {
+  background: rgba(0,0,0,0.4);
+  padding: 15px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}

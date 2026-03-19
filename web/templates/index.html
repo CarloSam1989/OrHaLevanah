@@ -4,35 +4,50 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Or HaLevanah</title>
+
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="manifest" href="/static/manifest.json">
 </head>
 <body>
+
   <main class="container">
-    <h1>Or HaLevanah</h1>
+
+    <h1>Or HaLevanah 🌙</h1>
     <p class="subtitle">
-      Calendario lunar observacional con referencia en Jerusalén.
+      Calendario lunar bíblico observacional basado en Jerusalén
     </p>
 
+    <!-- INFO GENERAL -->
     <section class="card">
-      <h2>Base del proyecto</h2>
+      <h2>Estado del sistema</h2>
       <p>
-        Esta aplicación mostrará la fase de la luna, el inicio del mes bíblico,
-        la comparación entre Jerusalén y la ubicación actual del usuario,
-        y las fiestas descritas en Levítico 23.
+        Proyecto en desarrollo basado en raíces hebreas.  
+        Cálculo del día bíblico desde el atardecer en Jerusalén.
       </p>
     </section>
 
+    <!-- ENDPOINTS -->
     <section class="card">
-        <h2>Endpoints iniciales</h2>
-        <ul>
-            <li><a href="/api/health" target="_blank">/api/health</a></li>
-            <li><a href="/api/jerusalem" target="_blank">/api/jerusalem</a></li>
-            <li><a href="/api/moon/jerusalem/today" target="_blank">/api/moon/jerusalem/today</a></li>
-        </ul>
+      <h2>Endpoints disponibles</h2>
+      <ul>
+        <li><a href="/api/health" target="_blank">/api/health</a></li>
+        <li><a href="/api/jerusalem" target="_blank">/api/jerusalem</a></li>
+        <li><a href="/api/moon/jerusalem/today" target="_blank">/api/moon/jerusalem/today</a></li>
+        <li><a href="/api/biblical/jerusalem/today" target="_blank">/api/biblical/jerusalem/today</a></li>
+      </ul>
     </section>
+
+    <!-- RESULTADO DINÁMICO -->
+    <section class="card">
+      <h2>Información bíblica (Jerusalén)</h2>
+      <button id="btnLoad">Cargar información</button>
+
+      <pre id="output"></pre>
+    </section>
+
   </main>
 
   <script src="/static/app.js"></script>
+
 </body>
 </html>
