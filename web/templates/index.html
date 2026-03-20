@@ -4,13 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Or HaLevanah</title>
-
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="manifest" href="/static/manifest.json">
 </head>
 <body>
   <main class="container">
-
     <h1>Or HaLevanah 🌙</h1>
     <p class="subtitle">
       Calendario lunar bíblico observacional basado en Jerusalén
@@ -19,8 +17,7 @@
     <section class="card">
       <h2>Estado del sistema</h2>
       <p>
-        Proyecto en desarrollo basado en raíces hebreas.
-        Cálculo del día bíblico desde el atardecer en Jerusalén.
+        Proyecto basado en raíces hebreas. El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.
       </p>
     </section>
 
@@ -32,6 +29,9 @@
         <li><a href="/api/moon/jerusalem/today" target="_blank">/api/moon/jerusalem/today</a></li>
         <li><a href="/api/biblical/jerusalem/today" target="_blank">/api/biblical/jerusalem/today</a></li>
         <li><a href="/api/biblical/jerusalem/month" target="_blank">/api/biblical/jerusalem/month</a></li>
+        <li><a href="/api/feasts/jerusalem" target="_blank">/api/feasts/jerusalem</a></li>
+        <li><a href="/api/aviv/status" target="_blank">/api/aviv/status</a></li>
+        <li><a href="/api/aviv/reports" target="_blank">/api/aviv/reports</a></li>
       </ul>
     </section>
 
@@ -47,6 +47,39 @@
       <pre id="outputMonth"></pre>
     </section>
 
+    <section class="card">
+      <h2>Fiestas de Levítico 23 y Omer</h2>
+      <button id="btnLoadFeasts">Cargar fiestas</button>
+      <pre id="outputFeasts"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Estado de Aviv</h2>
+      <button id="btnLoadAvivStatus">Cargar estado Aviv</button>
+      <pre id="outputAvivStatus"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Enviar reporte Aviv</h2>
+      <input type="text" id="avivUserName" placeholder="Nombre de usuario">
+      <select id="avivConfirmed">
+        <option value="true">Confirmo Aviv</option>
+        <option value="false">No confirmo Aviv</option>
+      </select>
+      <input type="text" id="avivNotes" placeholder="Notas">
+      <input type="text" id="avivEvidenceURL" placeholder="URL de evidencia (opcional)">
+      <button id="btnSendAvivReport">Enviar reporte</button>
+      <pre id="outputAvivReport"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Panel Admin Aviv</h2>
+      <input type="text" id="adminName" placeholder="Nombre del administrador">
+      <button id="btnConfirmAviv">Confirmar oficialmente</button>
+      <button id="btnRejectAviv">Rechazar oficialmente</button>
+      <button id="btnResetAviv">Reiniciar estado</button>
+      <pre id="outputAvivAdmin"></pre>
+    </section>
   </main>
 
   <script src="/static/app.js"></script>

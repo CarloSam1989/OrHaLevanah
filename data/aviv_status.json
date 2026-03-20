@@ -1,0 +1,12 @@
+{
+  "year": 2026,
+  "equinox_passed": true,
+  "official_confirmed": true,
+  "official_rejected": false,
+  "official_confirmed_by": "Carlos",
+  "official_date": "2026-03-19T19:56:08-05:00",
+  "reports_count": 1,
+  "confirm_count": 1,
+  "reject_count": 0,
+  "status": "confirmed"
+}
