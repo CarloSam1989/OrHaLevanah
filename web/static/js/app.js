@@ -420,6 +420,58 @@ function getFeastStableId(feast) {
   ].join("|");
 }
 
+function isMobileCalendarView() {
+  return window.innerWidth <= 768;
+}
+
+function buildMobileMarkers(feasts, isFriday, isSaturday, isBiblicalNewMonth) {
+  const markers = [];
+
+  if (feasts.length > 0) {
+    const firstFeast = feasts
+      .slice()
+      .sort((a, b) => getFeastOrder(a.name) - getFeastOrder(b.name))[0];
+
+    if (firstFeast) {
+      const theme = getFeastTheme(firstFeast.name);
+      const feastId = getFeastStableId(firstFeast);
+
+      markers.push(`
+        <span
+          class="calendar-marker feast ${theme.cls} feast-hover-target"
+          data-feast="${serializeFeastForDataset(firstFeast)}"
+          data-feast-id="${feastId}"
+          title="${firstFeast.name}"
+        >
+          ${getFeastIcon(firstFeast.name)}
+        </span>
+      `);
+    }
+
+    if (feasts.length > 1) {
+      markers.push(`
+        <span class="calendar-marker" title="${feasts.length - 1} evento(s) adicional(es)">
+          +${Math.min(feasts.length - 1, 9)}
+        </span>
+      `);
+    }
+  }
+
+  if (isFriday) {
+    markers.push(`<span class="calendar-marker sunset-start" title="Desde este atardecer inicia el Shabat">🌇</span>`);
+  }
+
+  if (isSaturday) {
+    markers.push(`<span class="calendar-marker shabbat" title="Shabat">🕯️</span>`);
+  }
+
+  if (isBiblicalNewMonth) {
+    markers.push(`<span class="calendar-marker new-month" title="Cabeza del mes bíblico">🌒</span>`);
+  }
+
+  return markers.slice(0, 3).join("");
+}
+
 function groupFeastsByVisibleDay(data) {
   const map = new Map();
   const all = [
@@ -877,7 +929,10 @@ function renderCalendar(data) {
     const monthStartType = getMonthStartType(dateKey);
     const isBiblicalNewMonth = monthStartType !== null;
 
-    const feastMarkers = feasts
+   const isMobile = isMobileCalendarView();
+
+const feastMarkers = !isMobile
+  ? feasts
       .slice(0, 2)
       .sort((a, b) => getFeastOrder(a.name) - getFeastOrder(b.name))
       .map((f) => {
@@ -894,25 +949,26 @@ function renderCalendar(data) {
           </span>
         `;
       })
-      .join("");
+      .join("")
+  : buildMobileMarkers(feasts, isFriday, isSaturday, isBiblicalNewMonth);
 
-    const fridaySunsetMarker = isFriday
-      ? `<span class="calendar-marker sunset-start" title="Desde este atardecer inicia el Shabat">🌇</span>`
-      : "";
+const fridaySunsetMarker = !isMobile && isFriday
+  ? `<span class="calendar-marker sunset-start" title="Desde este atardecer inicia el Shabat">🌇</span>`
+  : "";
 
-    const shabbatMarker = isSaturday
-      ? `<span class="calendar-marker shabbat" title="Shabat: viernes al atardecer → sábado al atardecer">🕯️</span>`
-      : "";
+const shabbatMarker = !isMobile && isSaturday
+  ? `<span class="calendar-marker shabbat" title="Shabat: viernes al atardecer → sábado al atardecer">🕯️</span>`
+  : "";
 
-    const newMonthMarker = isBiblicalNewMonth
-      ? `<span class="calendar-marker new-month" title="Cabeza del mes bíblico">🌒</span>`
-      : "";
+const newMonthMarker = !isMobile && isBiblicalNewMonth
+  ? `<span class="calendar-marker new-month" title="Cabeza del mes bíblico">🌒</span>`
+  : "";
 
-    const shabbatBridge = isFriday
-      ? `<div class="shabbat-bridge shabbat-span-2" title="Shabat">
-            <span class="shabbat-bridge-label">Shabat</span>
-        </div>`
-      : "";
+const shabbatBridge = isFriday
+  ? `<div class="shabbat-bridge shabbat-span-2" title="Shabat">
+        <span class="shabbat-bridge-label">${isMobile ? "" : "Shabat"}</span>
+    </div>`
+  : "";
 
     const feastIds = feasts.map((f) => getFeastStableId(f)).join("||");
 
@@ -928,7 +984,7 @@ function renderCalendar(data) {
           ${shabbatBridge}
           <div class="calendar-day-number">
             <div>${day}</div>
-            ${omerDayForThisDate ? `<div class="omer-label">Omer: ${omerDayForThisDate}</div>` : ""}
+            ${omerDayForThisDate ? `<div class="omer-label">${isMobile ? omerDayForThisDate : `Omer: ${omerDayForThisDate}`}</div>` : ""}
           </div>
           <div class="calendar-markers">
             ${feastMarkers}
@@ -1128,5 +1184,10 @@ document.addEventListener("DOMContentLoaded", () => {
   loadTodayBiblicalPanel();
   setupDetailToggle();
   loadFeasts();
+  window.addEventListener("resize", () => {
+  if (calendarState.feastData) {
+    renderCalendar(calendarState.feastData);
+  }
+});
 });
 
