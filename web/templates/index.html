@@ -4,84 +4,190 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Or HaLevanah</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <meta name="description" content="Calendario bíblico observacional basado en Jerusalén. Fiestas bíblicas, Shabat, Omer y cabeza de mes.">
+  <link rel="stylesheet" href="/static/css/styles.css?v=5">
   <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" type="image/x-icon" href="/static/img/logo.ico">
 </head>
 <body>
-  <main class="container">
-    <h1>Or HaLevanah 🌙</h1>
-    <p class="subtitle">
-      Calendario lunar bíblico observacional basado en Jerusalén
-    </p>
+  <main class="container portal-shell">
+    <section class="portal-hero">
+      <div class="portal-hero-content">
 
-    <section class="card">
-      <h2>Estado del sistema</h2>
-      <p>
-        Proyecto basado en raíces hebreas. El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.
-      </p>
+        <div class="portal-hero-header">
+          <div class="portal-logo-shell">
+            <img src="/static/img/logo.png" alt="Or HaLevanah" class="portal-logo">
+          </div>
+
+          <div class="portal-hero-text">
+            <span class="portal-overline">Or HaLevanah</span>
+            <h1>Calendario bíblico observacional basado en Jerusalén</h1>
+          </div>
+        </div>
+
+        <p class="subtitle portal-subtitle">
+          El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.
+          Consulta el día actual, las fiestas del Eterno, el conteo del Omer, Shabat y la
+          cabeza de mes en una sola vista.
+        </p>
+
+        <div class="portal-hero-badges">
+          <span class="portal-badge">🌒 Cabeza de mes</span>
+          <span class="portal-badge">🕯️ Shabat</span>
+          <span class="portal-badge">🌾 Omer</span>
+          <span class="portal-badge">📜 Levítico 23</span>
+        </div>
+
+      </div>
     </section>
 
-    <section class="card">
-      <h2>Endpoints disponibles</h2>
-      <ul>
-        <li><a href="/api/health" target="_blank">/api/health</a></li>
-        <li><a href="/api/jerusalem" target="_blank">/api/jerusalem</a></li>
-        <li><a href="/api/moon/jerusalem/today" target="_blank">/api/moon/jerusalem/today</a></li>
-        <li><a href="/api/biblical/jerusalem/today" target="_blank">/api/biblical/jerusalem/today</a></li>
-        <li><a href="/api/biblical/jerusalem/month" target="_blank">/api/biblical/jerusalem/month</a></li>
-        <li><a href="/api/feasts/jerusalem" target="_blank">/api/feasts/jerusalem</a></li>
-        <li><a href="/api/aviv/status" target="_blank">/api/aviv/status</a></li>
-        <li><a href="/api/aviv/reports" target="_blank">/api/aviv/reports</a></li>
-      </ul>
+    <section class="card today-biblical-card">
+      <div class="today-biblical-shell">
+        <div class="today-biblical-top">
+          <div class="today-biblical-brand">
+            <span class="today-biblical-overline">Or HaLevanah</span>
+            <h2>Hoy bíblico</h2>
+            <p>
+              Resumen del día actual según Jerusalén: fecha civil, fecha bíblica,
+              estado del Shabat, fiestas activas y conteo del Omer.
+            </p>
+          </div>
+
+          <button id="btnRefreshTodayBiblical" type="button" class="today-biblical-btn">
+            Actualizar
+          </button>
+        </div>
+
+        <div id="todayBiblicalContent" class="today-biblical-content">
+          <div class="today-biblical-loading">Cargando resumen bíblico de hoy...</div>
+        </div>
+      </div>
     </section>
 
-    <section class="card">
-      <h2>Información bíblica diaria</h2>
-      <button id="btnLoadToday">Cargar hoy</button>
-      <pre id="outputToday"></pre>
+    <section class="card portal-calendar-card">
+      <div class="section-head portal-calendar-head">
+        <div>
+          <span class="portal-section-kicker">Calendario</span>
+          <h2>Fiestas del Eterno escritas en Levítico 23</h2>
+          <p class="portal-section-text">
+            Explora el calendario mensual, selecciona un día y revisa su detalle bíblico.
+          </p>
+        </div>
+
+        <div class="section-actions">
+          <button id="btnPrevMonth" type="button">◀</button>
+          <button id="btnTodayMonth" type="button">Hoy</button>
+          <button id="btnNextMonth" type="button">▶</button>
+          <button id="btnLoadFeasts" type="button">Actualizar calendario</button>
+        </div>
+      </div>
+
+      <div class="calendar-shell-full">
+        <div class="calendar-panel">
+          <div class="calendar-header">
+            <h3 id="calendarTitle">Calendario bíblico</h3>
+          </div>
+
+          <div class="calendar-weekdays">
+            <div>Dom</div>
+            <div>Lun</div>
+            <div>Mar</div>
+            <div>Mié</div>
+            <div>Jue</div>
+            <div>Vie</div>
+            <div>Sáb</div>
+          </div>
+
+          <div id="calendarGrid" class="calendar-grid"></div>
+      </div>
+
+  <div class="calendar-legend">
+    <h3>🧭 Leyenda del calendario</h3>
+
+    <div class="legend-grid">
+      <div class="legend-item">
+        <span class="calendar-marker shabbat">🕯️</span>
+        <span>Shabat (viernes atardecer → sábado atardecer)</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker feast theme-pesaj">🕊️</span>
+        <span>Pesaj</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker feast theme-matzot">🍞</span>
+        <span>Panes sin levadura (Matzot)</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker feast theme-bikkurim">🌾</span>
+        <span>Bikkurim (Primeros frutos)</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker feast theme-shavuot">📜</span>
+        <span>Shavuot</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker feast theme-trumpets">📯</span>
+        <span>Trompetas</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker feast theme-kippur">🕯️</span>
+        <span>Yom Kippur</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker feast theme-sukkot">⛺</span>
+        <span>Sukkot (Tabernáculos)</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker new-month">🌒</span>
+        <span>Cabeza de mes bíblico</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="calendar-marker">🌇</span>
+        <span>Inicio de día bíblico (atardecer)</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="omer-label">Omer</span>
+        <span>Conteo del Omer</span>
+      </div>
+    </div>
+  </div>
+
+</div>
     </section>
 
-    <section class="card">
-      <h2>Mes bíblico actual</h2>
-      <button id="btnLoadMonth">Cargar mes</button>
-      <pre id="outputMonth"></pre>
-    </section>
+    <section class="card portal-info-card">
+      <div class="portal-info-grid">
+        <div class="portal-info-box">
+          <h3>Cómo funciona</h3>
+          <p>
+            La fecha civil cambia a medianoche, pero la fecha bíblica cambia al atardecer
+            en Jerusalén. Por eso, en la noche, la fecha bíblica puede ser distinta de la civil.
+          </p>
+        </div>
 
-    <section class="card">
-      <h2>Fiestas de Levítico 23 y Omer</h2>
-      <button id="btnLoadFeasts">Cargar fiestas</button>
-      <pre id="outputFeasts"></pre>
-    </section>
-
-    <section class="card">
-      <h2>Estado de Aviv</h2>
-      <button id="btnLoadAvivStatus">Cargar estado Aviv</button>
-      <pre id="outputAvivStatus"></pre>
-    </section>
-
-    <section class="card">
-      <h2>Enviar reporte Aviv</h2>
-      <input type="text" id="avivUserName" placeholder="Nombre de usuario">
-      <select id="avivConfirmed">
-        <option value="true">Confirmo Aviv</option>
-        <option value="false">No confirmo Aviv</option>
-      </select>
-      <input type="text" id="avivNotes" placeholder="Notas">
-      <input type="text" id="avivEvidenceURL" placeholder="URL de evidencia (opcional)">
-      <button id="btnSendAvivReport">Enviar reporte</button>
-      <pre id="outputAvivReport"></pre>
-    </section>
-
-    <section class="card">
-      <h2>Panel Admin Aviv</h2>
-      <input type="text" id="adminName" placeholder="Nombre del administrador">
-      <button id="btnConfirmAviv">Confirmar oficialmente</button>
-      <button id="btnRejectAviv">Rechazar oficialmente</button>
-      <button id="btnResetAviv">Reiniciar estado</button>
-      <pre id="outputAvivAdmin"></pre>
+        <div class="portal-info-box">
+          <h3>Qué verás aquí</h3>
+          <p>
+            Este portal muestra Shabat, fiestas bíblicas, Omer, inicio del mes actual
+            y próxima cabeza de mes según la lógica observacional del proyecto.
+          </p>
+        </div>
+      </div>
     </section>
   </main>
 
-  <script src="/static/app.js"></script>
+  <div id="calendarHoverCard" class="calendar-hover-card-simple"></div>
+
+  <script src="/static/js/app.js?v=5"></script>
 </body>
 </html>

@@ -4,24 +4,39 @@ import (
 	"time"
 
 	"or-halevanah/internal/models"
+	"or-halevanah/internal/solar"
 )
 
-func formatFeastDate(t time.Time) (string, string, string) {
-	return t.Format("2006-01-02"), t.Weekday().String(), t.Format("2006-01-02 15:04")
+func buildBiblicalWindow(day time.Time) (time.Time, time.Time) {
+	startAt := solar.ApproxSunsetJerusalem(day)
+	endAt := solar.ApproxSunsetJerusalem(day.AddDate(0, 0, 1))
+	return startAt, endAt
+}
+
+func formatFeastDate(start, end time.Time) (string, string, string, string, string) {
+	return start.Format("2006-01-02"),
+		start.Weekday().String(),
+		start.Format("2006-01-02 15:04"),
+		end.Format("2006-01-02 15:04"),
+		end.Format("2006-01-02")
 }
 
 func buildFixedFeast(name string, biblicalMonth, biblicalDay int, monthStart time.Time, description string) models.Feast {
-	feastDate := monthStart.AddDate(0, 0, biblicalDay-1)
-	gregorianDate, weekday, startAt := formatFeastDate(feastDate)
+	feastDay := monthStart.AddDate(0, 0, biblicalDay-1)
+
+	startAt, endAt := buildBiblicalWindow(feastDay)
 
 	return models.Feast{
-		Name:            name,
-		BiblicalMonth:   biblicalMonth,
-		BiblicalDay:     biblicalDay,
-		GregorianDate:   gregorianDate,
-		Weekday:         weekday,
-		BiblicalStartAt: startAt,
-		Description:     description,
+		Name:               name,
+		BiblicalMonth:      biblicalMonth,
+		BiblicalDay:        biblicalDay,
+		GregorianDate:      startAt.Format("2006-01-02"),
+		Weekday:            startAt.Weekday().String(),
+		BiblicalStartAt:    startAt.Format("2006-01-02 15:04"),
+		BiblicalEndAt:      endAt.Format("2006-01-02 15:04"),
+		GregorianStartDate: startAt.Format("2006-01-02"),
+		GregorianEndDate:   endAt.Format("2006-01-02"),
+		Description:        description,
 	}
 }
 

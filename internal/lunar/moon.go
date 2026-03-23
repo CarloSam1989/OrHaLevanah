@@ -91,3 +91,17 @@ func round(value float64, places int) float64 {
 	factor := math.Pow(10, float64(places))
 	return math.Round(value*factor) / factor
 }
+
+func FindNextPossibleNewMonth(start time.Time) (time.Time, bool, string) {
+	for i := 1; i <= 35; i++ {
+		candidate := start.AddDate(0, 0, i)
+		moon := CalculateMoonInfo(candidate)
+
+		possible, note := IsPossibleNewMonthObservational(moon.AgeDays, true)
+		if possible {
+			return candidate, true, note
+		}
+	}
+
+	return time.Time{}, false, "No se encontró una próxima cabeza de mes posible dentro de 35 días"
+}

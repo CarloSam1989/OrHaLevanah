@@ -38,27 +38,32 @@ type BiblicalTodayResponse struct {
 }
 
 type BiblicalMonthResponse struct {
-	CivilDate        string   `json:"civil_date"`
-	BiblicalDate     string   `json:"biblical_date"`
-	JerusalemTime    string   `json:"jerusalem_time"`
-	SunsetTime       string   `json:"sunset_time"`
-	AfterSunset      bool     `json:"after_sunset"`
-	DayNote          string   `json:"day_note"`
-	MonthStart       string   `json:"month_start"`
-	BiblicalDay      int      `json:"biblical_day"`
-	IsPossibleDayOne bool     `json:"is_possible_day_one"`
-	Location         Location `json:"location"`
-	Moon             MoonInfo `json:"moon"`
+	CivilDate            string   `json:"civil_date"`
+	BiblicalDate         string   `json:"biblical_date"`
+	JerusalemTime        string   `json:"jerusalem_time"`
+	SunsetTime           string   `json:"sunset_time"`
+	AfterSunset          bool     `json:"after_sunset"`
+	DayNote              string   `json:"day_note"`
+	MonthStart           string   `json:"month_start"`
+	NextMonthStart       string   `json:"next_month_start"`
+	BiblicalDay          int      `json:"biblical_day"`
+	IsPossibleDayOne     bool     `json:"is_possible_day_one"`
+	IsPossibleNextDayOne bool     `json:"is_possible_next_day_one"`
+	Location             Location `json:"location"`
+	Moon                 MoonInfo `json:"moon"`
 }
 
 type Feast struct {
-	Name            string `json:"name"`
-	BiblicalMonth   int    `json:"biblical_month"`
-	BiblicalDay     int    `json:"biblical_day"`
-	GregorianDate   string `json:"gregorian_date"`
-	Weekday         string `json:"weekday"`
-	BiblicalStartAt string `json:"biblical_start_at"`
-	Description     string `json:"description"`
+	Name               string `json:"name"`
+	BiblicalMonth      int    `json:"biblical_month"`
+	BiblicalDay        int    `json:"biblical_day"`
+	GregorianDate      string `json:"gregorian_date"`
+	Weekday            string `json:"weekday"`
+	BiblicalStartAt    string `json:"biblical_start_at"`
+	BiblicalEndAt      string `json:"biblical_end_at"`
+	GregorianStartDate string `json:"gregorian_start_date"`
+	GregorianEndDate   string `json:"gregorian_end_date"`
+	Description        string `json:"description"`
 }
 
 type OmerInfo struct {

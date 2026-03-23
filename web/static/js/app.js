@@ -1,0 +1,1132 @@
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}: no se pudo cargar ${url}`);
+  }
+  return response.json();
+}
+
+const calendarState = {
+  currentDate: new Date(),
+  selectedDate: null,
+  feastData: null,
+  biblicalMonthInfo: null,
+  jerusalemClockInterval: null,
+};
+
+function monthTitle(date) {
+  return date.toLocaleDateString("es-EC", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function normalizeDateInput(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatDateLabel(date) {
+  return date.toLocaleDateString("es-EC", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatLiveClock(dateObj) {
+  return dateObj.toLocaleString("es-EC", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function startJerusalemClock(initialDateTime) {
+  const clockEl = document.getElementById("todayJerusalemClock");
+  if (!clockEl || !initialDateTime) return;
+
+  if (calendarState.jerusalemClockInterval) {
+    clearInterval(calendarState.jerusalemClockInterval);
+    calendarState.jerusalemClockInterval = null;
+  }
+
+  let liveTime = new Date(initialDateTime.replace(" ", "T"));
+
+  if (Number.isNaN(liveTime.getTime())) {
+    clockEl.textContent = initialDateTime;
+    return;
+  }
+
+  clockEl.textContent = formatLiveClock(liveTime);
+
+  calendarState.jerusalemClockInterval = setInterval(() => {
+    liveTime = new Date(liveTime.getTime() + 1000);
+    clockEl.textContent = formatLiveClock(liveTime);
+  }, 1000);
+}
+
+function getWeekdayName(date) {
+  return date.toLocaleDateString("es-EC", { weekday: "long" });
+}
+
+function capitalize(text) {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function getBiblicalMonthName(monthNumber) {
+  const names = {
+    1: "Aviv",
+    2: "Segundo mes",
+    3: "Tercer mes",
+    4: "Cuarto mes",
+    5: "Quinto mes",
+    6: "Sexto mes",
+    7: "Séptimo mes",
+    8: "Octavo mes",
+    9: "Noveno mes",
+    10: "Décimo mes",
+    11: "Undécimo mes",
+    12: "Duodécimo mes",
+  };
+
+  return names[monthNumber] || `Mes ${monthNumber}`;
+}
+
+function getBiblicalDayWindowLabel(dateObj) {
+  const startDay = new Date(dateObj);
+  startDay.setDate(startDay.getDate() - 1);
+
+  const startName = capitalize(getWeekdayName(startDay));
+  const endName = capitalize(getWeekdayName(dateObj));
+
+  return `${startName} al atardecer → ${endName} al atardecer`;
+}
+
+function formatDateKey(dateObj) {
+  return [
+    dateObj.getFullYear(),
+    String(dateObj.getMonth() + 1).padStart(2, "0"),
+    String(dateObj.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function addDays(dateObj, days) {
+  const d = new Date(dateObj);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function getFeastIcon(feastName) {
+  const name = (feastName || "").toLowerCase();
+
+  if (name.includes("pesaj")) return "🕊️";
+  if (name.includes("levadura") || name.includes("matzot")) return "🍞";
+  if (name.includes("bikkurim") || name.includes("primeros frutos")) return "🌾";
+  if (name.includes("shavuot")) return "📜";
+  if (name.includes("trompetas")) return "📯";
+  if (name.includes("kippur")) return "🕯️";
+  if (name.includes("tabern")) return "⛺";
+  return "✦";
+}
+
+function getFeastTheme(feastName) {
+  const name = (feastName || "").toLowerCase();
+
+  if (name.includes("pesaj")) {
+    return { cls: "theme-pesaj", short: "Pesaj" };
+  }
+  if (name.includes("levadura") || name.includes("matzot")) {
+    return { cls: "theme-matzot", short: "Matzot" };
+  }
+  if (name.includes("bikkurim") || name.includes("primeros frutos")) {
+    return { cls: "theme-bikkurim", short: "Bikkurim" };
+  }
+  if (name.includes("shavuot")) {
+    return { cls: "theme-shavuot", short: "Shavuot" };
+  }
+  if (name.includes("trompetas")) {
+    return { cls: "theme-trumpets", short: "Trompetas" };
+  }
+  if (name.includes("kippur")) {
+    return { cls: "theme-kippur", short: "Kippur" };
+  }
+  if (name.includes("tabern")) {
+    return { cls: "theme-sukkot", short: "Sukkot" };
+  }
+
+  return { cls: "theme-generic", short: feastName || "Fiesta" };
+}
+
+function getFeastOrder(feastName) {
+  const name = (feastName || "").toLowerCase();
+
+  if (name.includes("pesaj")) return 1;
+  if (name.includes("levadura") || name.includes("matzot")) return 2;
+  if (name.includes("bikkurim") || name.includes("primeros frutos")) return 3;
+  if (name.includes("shavuot")) return 4;
+  if (name.includes("trompetas")) return 5;
+  if (name.includes("kippur")) return 6;
+  if (name.includes("tabern")) return 7;
+
+  return 99;
+}
+
+function getBiblicalMonthStarts() {
+  const starts = [];
+
+  if (calendarState.biblicalMonthInfo?.month_start) {
+    starts.push(calendarState.biblicalMonthInfo.month_start);
+  }
+
+  if (calendarState.biblicalMonthInfo?.next_month_start) {
+    starts.push(calendarState.biblicalMonthInfo.next_month_start);
+  }
+
+  return starts;
+}
+
+function getMonthStartType(dateKey) {
+  if (dateKey === calendarState.biblicalMonthInfo?.month_start) {
+    return "current";
+  }
+
+  if (dateKey === calendarState.biblicalMonthInfo?.next_month_start) {
+    return "next";
+  }
+
+  return null;
+}
+
+function isMonthStartDate(dateKey) {
+  return getBiblicalMonthStarts().includes(dateKey);
+}
+
+async function loadBiblicalMonthInfo() {
+  const payload = await fetchJson("/api/biblical/jerusalem/month");
+  calendarState.biblicalMonthInfo = payload?.data || null;
+}
+
+function getTodayShabbatState(civilDate, afterSunset) {
+  if (!civilDate) {
+    return { active: false, upcoming: false, label: "" };
+  }
+
+  const dateObj = normalizeDateInput(civilDate);
+  const dayOfWeek = dateObj.getDay();
+
+  if ((dayOfWeek === 5 && afterSunset) || (dayOfWeek === 6 && !afterSunset)) {
+    return {
+      active: true,
+      upcoming: false,
+      label: "🕯️ Shabat activo",
+    };
+  }
+
+  if (dayOfWeek === 5 && !afterSunset) {
+    return {
+      active: false,
+      upcoming: true,
+      label: "🌇 Hoy entra Shabat al atardecer",
+    };
+  }
+
+  return { active: false, upcoming: false, label: "" };
+}
+
+function buildTodayBiblicalHtml(todayData, feastData, monthData) {
+  const civilDate = feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "-";
+  const biblicalDate = feastData?.biblical_date || todayData?.biblical_date || "-";
+  const biblicalMonth = feastData?.biblical_month ?? todayData?.biblical_month ?? "-";
+  const biblicalDay = feastData?.biblical_day ?? todayData?.biblical_day ?? "-";
+  const jerusalemTime = monthData?.jerusalem_time || todayData?.jerusalem_time || "-";
+  const sunsetTime = monthData?.sunset_time || todayData?.sunset_time || "-";
+  const afterSunset = monthData?.after_sunset ?? todayData?.after_sunset ?? false;
+  const currentFeasts = feastData?.current_feasts || [];
+  const omer = feastData?.omer || null;
+  const dayNote = feastData?.day_note || todayData?.day_note || monthData?.day_note || "";
+
+  const shabbatState = getTodayShabbatState(civilDate, afterSunset);
+  const biblicalMonthName =
+    typeof biblicalMonth === "number" ? getBiblicalMonthName(biblicalMonth) : "-";
+  const biblicalDisplay =
+    biblicalDay !== "-" && biblicalMonthName !== "-"
+      ? `${biblicalDay} de ${biblicalMonthName}`
+      : "-";
+
+  const badges = [];
+
+  if (shabbatState.label) {
+    badges.push(`<span class="today-status-badge is-shabbat">${shabbatState.label}</span>`);
+  }
+
+  if (monthData?.month_start === civilDate) {
+    badges.push(`<span class="today-status-badge is-new-month">🌒 Cabeza del mes bíblico</span>`);
+  }
+
+  if (currentFeasts.length > 0) {
+    currentFeasts.forEach((feast) => {
+      badges.push(`
+        <span class="today-status-badge is-feast">
+          ${getFeastIcon(feast.name)} ${feast.name}
+        </span>
+      `);
+    });
+  }
+
+  if (omer?.is_omer_counting && omer?.omer_day_today) {
+    badges.push(`
+      <span class="today-status-badge is-omer">
+        🌾 Omer día ${omer.omer_day_today}
+      </span>
+    `);
+  }
+
+  if (badges.length === 0) {
+    badges.push(`<span class="today-status-badge is-common">📖 Día común</span>`);
+  }
+
+  let summaryTitle = "Día bíblico en curso";
+  let summaryText = "Hoy no hay una fiesta bíblica activa registrada para este momento.";
+
+  if (currentFeasts.length > 0) {
+    summaryTitle = currentFeasts.map((feast) => feast.name).join(" · ");
+    summaryText = "Hoy hay una fiesta bíblica activa según el cálculo actual basado en Jerusalén.";
+  } else if (shabbatState.active) {
+    summaryTitle = "Shabat";
+    summaryText = "Ahora mismo estás dentro de la ventana bíblica de Shabat.";
+  } else if (shabbatState.upcoming) {
+    summaryTitle = "Preparación para Shabat";
+    summaryText = "Hoy todavía no ha comenzado Shabat, pero entra al atardecer.";
+  }
+
+  return `
+    <div class="today-biblical-hero">
+      <div class="today-biblical-main">
+        <span class="today-biblical-kicker">Resumen del día</span>
+        <h3>${summaryTitle}</h3>
+        <p>${summaryText}</p>
+
+        <div class="today-biblical-badges">
+          ${badges.join("")}
+        </div>
+      </div>
+
+      <div class="today-biblical-side">
+        <div class="today-mini-card">
+          <span class="today-mini-label">Fecha civil</span>
+          <strong>${civilDate}</strong>
+        </div>
+
+        <div class="today-mini-card">
+          <span class="today-mini-label">Fecha bíblica (equivalencia civil)</span>
+          <strong>${biblicalDate}</strong>
+        </div>
+
+        <div class="today-mini-card">
+          <span class="today-mini-label">Fecha bíblica</span>
+          <strong>${biblicalDisplay}</strong>
+        </div>
+
+        <div class="today-mini-card">
+          <span class="today-mini-label">Jerusalén</span>
+          <strong id="todayJerusalemClock">${jerusalemTime}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="today-biblical-grid">
+      <div class="today-info-box">
+        <span class="today-info-label">Atardecer en Jerusalén</span>
+        <strong>${sunsetTime}</strong>
+      </div>
+
+      <div class="today-info-box">
+        <span class="today-info-label">Después del atardecer</span>
+        <strong>${afterSunset ? "Sí" : "No"}</strong>
+      </div>
+
+      <div class="today-info-box">
+        <span class="today-info-label">Inicio del mes actual</span>
+        <strong>${monthData?.month_start || "-"}</strong>
+      </div>
+
+      <div class="today-info-box">
+        <span class="today-info-label">Próxima cabeza de mes</span>
+        <strong>${monthData?.next_month_start || "-"}</strong>
+      </div>
+    </div>
+
+    <div class="today-biblical-note">
+      <strong>Nota del día:</strong>
+      <span>
+        La fecha civil cambia a medianoche; la fecha bíblica cambia al atardecer en Jerusalén.
+        ${dayNote ? ` ${dayNote}` : ""}
+      </span>
+    </div>
+  `;
+}
+
+async function loadTodayBiblicalPanel() {
+  const panel = document.getElementById("todayBiblicalContent");
+  if (!panel) return;
+
+  panel.innerHTML = `<div class="today-biblical-loading">Cargando resumen bíblico de hoy...</div>`;
+
+  try {
+    const [todayPayload, feastPayload, monthPayload] = await Promise.all([
+      fetchJson("/api/biblical/jerusalem/today"),
+      fetchJson("/api/feasts/jerusalem"),
+      fetchJson("/api/biblical/jerusalem/month"),
+    ]);
+
+    const todayData = todayPayload?.data || {};
+    const feastData = feastPayload?.data || {};
+    const monthData = monthPayload?.data || {};
+
+    calendarState.biblicalMonthInfo = monthData;
+
+    panel.innerHTML = buildTodayBiblicalHtml(todayData, feastData, monthData);
+    startJerusalemClock(monthData?.jerusalem_time || todayData?.jerusalem_time || "");
+  } catch (error) {
+    console.error("Error cargando el panel Hoy bíblico:", error);
+    panel.innerHTML = `
+      <div class="today-biblical-error">
+        No se pudo cargar el resumen bíblico de hoy.
+        <br>
+        <small>${error.message}</small>
+      </div>
+    `;
+  }
+}
+
+function serializeFeastForDataset(feast) {
+  return encodeURIComponent(JSON.stringify(feast));
+}
+
+function getFeastStableId(feast) {
+  return [
+    feast.name || "",
+    feast.gregorian_start_date || "",
+    feast.gregorian_end_date || "",
+    feast.biblical_month || "",
+    feast.biblical_day || "",
+  ].join("|");
+}
+
+function groupFeastsByVisibleDay(data) {
+  const map = new Map();
+  const all = [
+    ...(data.current_feasts || []),
+    ...(data.upcoming_feasts || []),
+  ];
+
+  for (const feast of all) {
+    const startStr = feast.gregorian_start_date || feast.gregorian_date;
+    const endStr = feast.gregorian_end_date || feast.gregorian_start_date || feast.gregorian_date;
+
+    if (!startStr) continue;
+
+    const start = normalizeDateInput(startStr);
+    const end = normalizeDateInput(endStr);
+
+    let current = new Date(start);
+    while (current <= end) {
+      const key = formatDateKey(current);
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key).push(feast);
+      current = addDays(current, 1);
+    }
+  }
+
+  for (const [key, feasts] of map.entries()) {
+    feasts.sort((a, b) => {
+      const orderA = getFeastOrder(a.name);
+      const orderB = getFeastOrder(b.name);
+      if (orderA !== orderB) return orderA - orderB;
+
+      const startA = a.gregorian_start_date || "";
+      const startB = b.gregorian_start_date || "";
+      return startA.localeCompare(startB);
+    });
+    map.set(key, feasts);
+  }
+
+  return map;
+}
+
+function ensureHoverCard() {
+  let card = document.getElementById("feastHoverCard");
+  if (!card) {
+    card = document.createElement("div");
+    card.id = "feastHoverCard";
+    card.className = "feast-hover-card";
+    document.body.appendChild(card);
+  }
+  return card;
+}
+
+function buildHoverCardHtml(feast) {
+  return `
+    <div class="hover-card-title">${getFeastIcon(feast.name)} ${feast.name}</div>
+    <div class="hover-card-line"><strong>Fecha bíblica:</strong> mes ${feast.biblical_month}, día ${feast.biblical_day}</div>
+    <div class="hover-card-line"><strong>Fecha gregoriana:</strong> ${feast.gregorian_start_date} → ${feast.gregorian_end_date}</div>
+    <div class="hover-card-line"><strong>Horario bíblico:</strong> ${feast.biblical_start_at} → ${feast.biblical_end_at}</div>
+    <div class="hover-card-line"><strong>Día:</strong> ${feast.weekday}</div>
+    ${feast.description ? `<div class="hover-card-desc">${feast.description}</div>` : ""}
+  `;
+}
+
+function positionHoverCard(mouseEvent) {
+  const card = ensureHoverCard();
+  const offsetX = 18;
+  const offsetY = 18;
+
+  let left = mouseEvent.clientX + offsetX;
+  let top = mouseEvent.clientY + offsetY;
+
+  const rect = card.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  if (left + rect.width > viewportWidth - 12) {
+    left = mouseEvent.clientX - rect.width - 16;
+  }
+
+  if (top + rect.height > viewportHeight - 12) {
+    top = mouseEvent.clientY - rect.height - 16;
+  }
+
+  if (left < 12) left = 12;
+  if (top < 12) top = 12;
+
+  card.style.left = `${left}px`;
+  card.style.top = `${top}px`;
+}
+
+function highlightFeastDays(feastId) {
+  document.querySelectorAll(".calendar-day").forEach((day) => {
+    day.classList.remove("is-feast-highlighted");
+  });
+
+  document.querySelectorAll(`.calendar-day[data-feast-ids*="${CSS.escape(feastId)}"]`).forEach((day) => {
+    day.classList.add("is-feast-highlighted");
+  });
+}
+
+function clearFeastHighlight() {
+  document.querySelectorAll(".calendar-day").forEach((day) => {
+    day.classList.remove("is-feast-highlighted");
+  });
+}
+
+function showHoverCard(feast, mouseEvent) {
+  const card = ensureHoverCard();
+  card.innerHTML = buildHoverCardHtml(feast);
+  card.classList.add("is-visible");
+  positionHoverCard(mouseEvent);
+}
+
+function hideHoverCard() {
+  const card = document.getElementById("feastHoverCard");
+  if (!card) return;
+  card.classList.remove("is-visible");
+}
+
+function bindFeastHoverCards() {
+  const hoverTargets = document.querySelectorAll(".feast-hover-target");
+
+  hoverTargets.forEach((target) => {
+    target.addEventListener("mouseenter", (event) => {
+      const encoded = target.dataset.feast;
+      const feastId = target.dataset.feastId;
+      if (!encoded) return;
+
+      try {
+        const feast = JSON.parse(decodeURIComponent(encoded));
+        showHoverCard(feast, event);
+        if (feastId) highlightFeastDays(feastId);
+      } catch (err) {
+        console.error("No se pudo leer data-feast:", err);
+      }
+    });
+
+    target.addEventListener("mousemove", (event) => {
+      positionHoverCard(event);
+    });
+
+    target.addEventListener("mouseleave", () => {
+      hideHoverCard();
+      clearFeastHighlight();
+    });
+  });
+}
+
+function bindShabbatHoverCard() {
+  const hoverCard = document.getElementById("calendarHoverCard");
+  if (!hoverCard) return;
+
+  const fridayBridges = document.querySelectorAll(".shabbat-bridge");
+  const saturdayMarkers = document.querySelectorAll(".calendar-marker.shabbat");
+
+  function moveSimpleCard(e) {
+    const offset = 12;
+
+    hoverCard.style.display = "block";
+
+    const rect = hoverCard.getBoundingClientRect();
+    let x = e.clientX + offset;
+    let y = e.clientY + offset;
+
+    if (x + rect.width > window.innerWidth - 10) {
+      x = e.clientX - rect.width - offset;
+    }
+
+    if (y + rect.height > window.innerHeight - 10) {
+      y = e.clientY - rect.height - offset;
+    }
+
+    if (x < 10) x = 10;
+    if (y < 10) y = 10;
+
+    hoverCard.style.left = `${x}px`;
+    hoverCard.style.top = `${y}px`;
+  }
+
+  function showShabbatCard(e) {
+    hoverCard.textContent = "Shabat";
+    hoverCard.style.display = "block";
+    moveSimpleCard(e);
+  }
+
+  function hideShabbatCard() {
+    hoverCard.style.display = "none";
+  }
+
+  fridayBridges.forEach((bridge) => {
+    bridge.addEventListener("mouseenter", showShabbatCard);
+    bridge.addEventListener("mousemove", moveSimpleCard);
+    bridge.addEventListener("mouseleave", hideShabbatCard);
+  });
+
+  saturdayMarkers.forEach((marker) => {
+    marker.addEventListener("mouseenter", showShabbatCard);
+    marker.addEventListener("mousemove", moveSimpleCard);
+    marker.addEventListener("mouseleave", hideShabbatCard);
+  });
+}
+
+function renderDayDetail(dateKey, feastsMap) {
+  const detail = document.getElementById("calendarDetailPanel");
+  if (!detail || !dateKey) return;
+
+  detail.classList.remove("is-hidden");
+  detail.classList.add("is-visible");
+
+  const dateObj = normalizeDateInput(dateKey);
+  const feasts = feastsMap.get(dateKey) || [];
+  const data = calendarState.feastData;
+  const omer = data?.omer;
+  const monthInfo = calendarState.biblicalMonthInfo;
+
+  const dayOfWeek = dateObj.getDay();
+  const isFriday = dayOfWeek === 5;
+  const isSaturday = dayOfWeek === 6;
+  const monthStartType = getMonthStartType(dateKey);
+  const isBiblicalNewMonth = monthStartType !== null;
+
+  const headerExtras = [];
+
+  if (isFriday) {
+    headerExtras.push("🌇 Desde este atardecer comienza la transición hacia Shabat");
+  }
+
+  if (isSaturday) {
+    headerExtras.push(`🕯️ Shabat bíblico: ${getBiblicalDayWindowLabel(dateObj)}`);
+  }
+
+  if (isBiblicalNewMonth) {
+    headerExtras.push(`🌒 Cabeza del mes bíblico: ${getBiblicalDayWindowLabel(dateObj)}`);
+  }
+
+  let currentDateInfoHtml = "";
+  if (isBiblicalNewMonth) {
+    currentDateInfoHtml = `
+      <div class="feast-item">
+        <h4>🌒 Este día marca el inicio del mes</h4>
+        <p><strong>Ventana bíblica:</strong> ${getBiblicalDayWindowLabel(dateObj)}</p>
+        <p><strong>Fecha gregoriana:</strong> ${dateKey}</p>
+        <p>El mes bíblico comienza al atardecer de este día y continúa hasta el siguiente atardecer.</p>
+      </div>
+    `;
+  } else if (isFriday) {
+    currentDateInfoHtml = `
+      <div class="feast-item">
+        <h4>🌇 Inicio de Shabat al atardecer</h4>
+        <p><strong>Ventana:</strong> ${capitalize(getWeekdayName(dateObj))} al atardecer → ${capitalize(getWeekdayName(addDays(dateObj, 1)))} al atardecer</p>
+      </div>
+    `;
+  } else if (isSaturday) {
+    currentDateInfoHtml = `
+      <div class="feast-item">
+        <h4>🕯️ Shabat bíblico</h4>
+        <p><strong>Ventana:</strong> ${getBiblicalDayWindowLabel(dateObj)}</p>
+      </div>
+    `;
+  }
+
+  let monthInfoHtml = "";
+  if (monthInfo) {
+    monthInfoHtml = `
+      <div class="feast-item">
+        <h4>🌙 Información del mes bíblico actual</h4>
+        <p><strong>Inicio del mes bíblico actual:</strong> ${monthInfo.month_start ?? "-"}</p>
+        <p><strong>Inicio del próximo mes bíblico:</strong> ${monthInfo.next_month_start ?? "-"}</p>
+        <p><strong>Día bíblico actual:</strong> ${monthInfo.biblical_day ?? "-"}</p>
+        <p><strong>Hora en Jerusalén:</strong> ${monthInfo.jerusalem_time ?? "-"}</p>
+        <p><strong>Atardecer en Jerusalén:</strong> ${monthInfo.sunset_time ?? "-"}</p>
+        <p><strong>Después del atardecer:</strong> ${monthInfo.after_sunset ? "Sí" : "No"}</p>
+        <p><strong>Posible día 1 hoy:</strong> ${monthInfo.is_possible_day_one ? "Sí" : "No"}</p>
+        <p><strong>Posible día 1 próximo:</strong> ${monthInfo.is_possible_next_day_one ? "Sí" : "No"}</p>
+        <p>${monthInfo.day_note ?? ""}</p>
+      </div>
+    `;
+  }
+
+  let feastHtml = "";
+  if (feasts.length > 0) {
+    feastHtml = feasts.map((feast) => `
+      <div class="feast-item ${getFeastTheme(feast.name).cls}">
+        <h4>${getFeastIcon(feast.name)} ${feast.name}</h4>
+        <p><strong>Fecha bíblica:</strong> mes ${feast.biblical_month}, día ${feast.biblical_day}</p>
+        <p><strong>Fecha gregoriana:</strong> ${feast.gregorian_start_date} → ${feast.gregorian_end_date}</p>
+        <p><strong>Horario bíblico:</strong> ${feast.biblical_start_at} → ${feast.biblical_end_at}</p>
+        <p><strong>Día:</strong> ${feast.weekday}</p>
+        <p>${feast.description || ""}</p>
+      </div>
+    `).join("");
+  }
+
+  let omerHtml = "";
+  if (omer) {
+    omerHtml = `
+      <div class="feast-item">
+        <h4>🌾 Conteo del Omer</h4>
+        <p><strong>Primer Shabat en Panes sin Levadura:</strong> ${omer.first_shabbat_in_matzot ?? "-"}</p>
+        <p><strong>Bikkurim:</strong> ${omer.bikkurim_date ?? "-"} (${omer.bikkurim_weekday ?? "-"})</p>
+        <p><strong>Shavuot:</strong> ${omer.shavuot_date ?? "-"} (${omer.shavuot_weekday ?? "-"})</p>
+        <p><strong>Día del Omer hoy:</strong> ${omer.omer_day_today ?? "-"}</p>
+        <p><strong>Conteo activo:</strong> ${omer.is_omer_counting ? "Sí" : "No"}</p>
+        <p>${omer.day_note ?? ""}</p>
+      </div>
+    `;
+  }
+const content = document.getElementById("calendarDetailContent");
+const title = document.getElementById("calendarDetailTitle");
+
+if (title) {
+  title.textContent = `📅 ${formatDateLabel(dateObj)}`;
+}
+
+if (content) {
+  content.innerHTML = `
+    ${headerExtras.length ? `<p>${headerExtras.join(" · ")}</p>` : ""}
+    ${currentDateInfoHtml}
+    ${monthInfoHtml}
+    ${feastHtml}
+    ${omerHtml}
+  `;
+}
+}
+
+function buildWeekFeastBands(weekDates, feastsMap) {
+  const allFeasts = new Map();
+
+  weekDates.forEach((dateKey, colIndex) => {
+    const feasts = feastsMap.get(dateKey) || [];
+    feasts.forEach((feast) => {
+      const feastId = getFeastStableId(feast);
+      if (!allFeasts.has(feastId)) {
+        allFeasts.set(feastId, {
+          feast,
+          cols: [],
+        });
+      }
+      allFeasts.get(feastId).cols.push(colIndex);
+    });
+  });
+
+  const sorted = Array.from(allFeasts.values()).sort((a, b) => {
+    const orderA = getFeastOrder(a.feast.name);
+    const orderB = getFeastOrder(b.feast.name);
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.feast.gregorian_start_date || "").localeCompare(b.feast.gregorian_start_date || "");
+  });
+
+  const laneTopMap = {
+    1: 42,
+    2: 60,
+    3: 78,
+    4: 96,
+    5: 42,
+    6: 60,
+    7: 78,
+    99: 96,
+  };
+
+  return sorted.map((item) => {
+    const { feast, cols } = item;
+    const theme = getFeastTheme(feast.name);
+    const feastId = getFeastStableId(feast);
+    const minCol = Math.min(...cols);
+    const maxCol = Math.max(...cols);
+    const order = getFeastOrder(feast.name);
+    const top = laneTopMap[order] || 64;
+    const spanDays = maxCol - minCol + 1;
+    const shortLabel = theme.short || feast.name || "Fiesta";
+    const hideLabelClass = spanDays <= 1 ? "is-label-hidden" : "";
+
+    return `
+      <div
+        class="week-feast-band ${theme.cls} feast-hover-target ${hideLabelClass}"
+        style="left: calc(${minCol} * (100% / 7) + 8px); width: calc(${spanDays} * (100% / 7) - 16px); top: ${top}px;"
+        data-feast="${serializeFeastForDataset(feast)}"
+        data-feast-id="${feastId}"
+        title="${feast.name}"
+      >
+        <span class="week-feast-band-label">${shortLabel}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderCalendar(data) {
+  const grid = document.getElementById("calendarGrid");
+  const title = document.getElementById("calendarTitle");
+  const detail = document.getElementById("calendarDetailPanel");
+  if (!grid || !title) return;
+
+  const feastsMap = groupFeastsByVisibleDay(data);
+  const currentMonthDate = new Date(
+    calendarState.currentDate.getFullYear(),
+    calendarState.currentDate.getMonth(),
+    1
+  );
+
+  title.textContent = `Calendario: ${monthTitle(currentMonthDate)}`;
+
+  const year = currentMonthDate.getFullYear();
+  const month = currentMonthDate.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const todayKey = data.civil_date;
+  const cells = [];
+
+  for (let i = 0; i < startWeekday; i++) {
+    const dayNum = daysInPrevMonth - startWeekday + i + 1;
+    cells.push({
+      type: "other",
+      number: dayNum,
+      dateKey: null,
+      html: `
+        <div class="calendar-day is-other-month">
+          <div class="calendar-day-number">${dayNum}</div>
+        </div>
+      `,
+    });
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateObj = new Date(year, month, day);
+    const dateKey = formatDateKey(dateObj);
+
+    const feasts = feastsMap.get(dateKey) || [];
+    const omerData = calendarState.feastData?.omer;
+    let omerDayForThisDate = null;
+
+    if (omerData?.bikkurim_date) {
+      const bikkurim = normalizeDateInput(omerData.bikkurim_date);
+      const current = normalizeDateInput(dateKey);
+
+      const diffMs = current.getTime() - bikkurim.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays >= 0 && diffDays < 49) {
+        omerDayForThisDate = diffDays + 1;
+      }
+    }
+
+    const isToday = dateKey === todayKey;
+    const isSelected = calendarState.selectedDate === dateKey;
+
+    const dayOfWeek = dateObj.getDay();
+    const isFriday = dayOfWeek === 5;
+    const isSaturday = dayOfWeek === 6;
+    const monthStartType = getMonthStartType(dateKey);
+    const isBiblicalNewMonth = monthStartType !== null;
+
+    const feastMarkers = feasts
+      .slice(0, 2)
+      .sort((a, b) => getFeastOrder(a.name) - getFeastOrder(b.name))
+      .map((f) => {
+        const theme = getFeastTheme(f.name);
+        const feastId = getFeastStableId(f);
+        return `
+          <span
+            class="calendar-marker feast ${theme.cls} feast-hover-target"
+            data-feast="${serializeFeastForDataset(f)}"
+            data-feast-id="${feastId}"
+            title="${f.name}"
+          >
+            ${getFeastIcon(f.name)}
+          </span>
+        `;
+      })
+      .join("");
+
+    const fridaySunsetMarker = isFriday
+      ? `<span class="calendar-marker sunset-start" title="Desde este atardecer inicia el Shabat">🌇</span>`
+      : "";
+
+    const shabbatMarker = isSaturday
+      ? `<span class="calendar-marker shabbat" title="Shabat: viernes al atardecer → sábado al atardecer">🕯️</span>`
+      : "";
+
+    const newMonthMarker = isBiblicalNewMonth
+      ? `<span class="calendar-marker new-month" title="Cabeza del mes bíblico">🌒</span>`
+      : "";
+
+    const shabbatBridge = isFriday
+      ? `<div class="shabbat-bridge shabbat-span-2" title="Shabat">
+            <span class="shabbat-bridge-label">Shabat</span>
+        </div>`
+      : "";
+
+    const feastIds = feasts.map((f) => getFeastStableId(f)).join("||");
+
+    cells.push({
+      type: "current",
+      number: day,
+      dateKey,
+      html: `
+        <div class="calendar-day ${isToday ? "is-today" : ""} ${feasts.length ? "has-feast" : ""} ${isSelected ? "is-selected" : ""} ${isFriday ? "is-friday" : ""} ${isSaturday ? "is-shabbat-day" : ""} 
+          ${monthStartType === "current" ? "is-new-month-day" : ""}
+          ${monthStartType === "next" ? "is-next-new-month-day" : ""}"
+          data-date="${dateKey}" data-feast-ids="${feastIds}">
+          ${shabbatBridge}
+          <div class="calendar-day-number">
+            <div>${day}</div>
+            ${omerDayForThisDate ? `<div class="omer-label">Omer: ${omerDayForThisDate}</div>` : ""}
+          </div>
+          <div class="calendar-markers">
+            ${feastMarkers}
+            ${fridaySunsetMarker}
+            ${shabbatMarker}
+            ${newMonthMarker}
+          </div>
+          <div class="calendar-day-note"></div>
+        </div>
+      `,
+    });
+  }
+
+  while (cells.length % 7 !== 0) {
+    const number = (cells.length % 7) + 1;
+    cells.push({
+      type: "other",
+      number,
+      dateKey: null,
+      html: `
+        <div class="calendar-day is-other-month">
+          <div class="calendar-day-number">${number}</div>
+        </div>
+      `,
+    });
+  }
+
+  let html = "";
+
+  for (let i = 0; i < cells.length; i += 7) {
+    const weekCells = cells.slice(i, i + 7);
+    const weekDates = weekCells.map((cell) => cell.dateKey);
+    const weekBandsHtml = buildWeekFeastBands(weekDates, feastsMap);
+
+    html += `
+      <div class="calendar-week-row">
+        <div class="calendar-week-bands">
+          ${weekBandsHtml}
+        </div>
+        <div class="calendar-week-cells">
+          ${weekCells.map((cell) => cell.html).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+
+  grid.querySelectorAll(".calendar-day[data-date]").forEach((cell) => {
+    cell.addEventListener("click", () => {
+      calendarState.selectedDate = cell.dataset.date;
+      renderCalendar(data);
+      renderDayDetail(calendarState.selectedDate, feastsMap);
+    });
+  });
+
+  bindFeastHoverCards();
+  bindShabbatHoverCard();
+
+  if (!calendarState.selectedDate && detail) {
+    detail.classList.add("is-hidden");
+    detail.classList.remove("is-visible");
+    detail.innerHTML = `
+      <div class="calendar-detail-placeholder">
+        Selecciona un día del calendario para ver su detalle bíblico.
+      </div>
+    `;
+  }
+}
+
+function renderFeastsData(payload) {
+  const data = payload.data;
+  calendarState.feastData = data;
+
+  const summary = document.getElementById("feastsSummary");
+
+  if (summary) {
+    summary.innerHTML = `
+      <div class="feasts-summary">
+        <p><strong>Fecha civil:</strong> ${data.civil_date}</p>
+        <p><strong>Fecha bíblica:</strong> ${data.biblical_date}</p>
+        <p><strong>Mes bíblico:</strong> ${data.biblical_month}</p>
+        <p><strong>Día bíblico:</strong> ${data.biblical_day}</p>
+        <p>${data.day_note || ""}</p>
+      </div>
+    `;
+  }
+
+  renderCalendar(data);
+}
+
+async function loadFeasts() {
+  const summary = document.getElementById("feastsSummary");
+  const detailPanel = document.getElementById("calendarDetailPanel");
+  const grid = document.getElementById("calendarGrid");
+
+  if (summary) {
+    summary.innerHTML = `<div class="empty-state">Cargando información...</div>`;
+  }
+
+  if (detailPanel) {
+    detailPanel.innerHTML = "Selecciona un día para ver detalles";
+  }
+
+  if (grid) {
+    grid.innerHTML = "";
+  }
+
+  try {
+    const [feastPayload] = await Promise.all([
+      fetchJson("/api/feasts/jerusalem"),
+      loadBiblicalMonthInfo(),
+    ]);
+
+    const civilDate = feastPayload?.data?.civil_date;
+    calendarState.currentDate = civilDate ? normalizeDateInput(civilDate) : new Date();
+    calendarState.selectedDate = null;
+
+    renderFeastsData(feastPayload);
+  } catch (error) {
+    console.error("Error cargando fiestas:", error);
+
+    if (summary) {
+      summary.innerHTML = `<div class="empty-state">${error.message}</div>`;
+    }
+
+    if (detailPanel) {
+      detailPanel.innerHTML = "No se pudo cargar el detalle.";
+    }
+
+    if (grid) {
+      grid.innerHTML = "";
+    }
+  }
+}
+
+function moveCalendarMonth(offset) {
+  if (!calendarState.feastData) return;
+
+  calendarState.currentDate = new Date(
+    calendarState.currentDate.getFullYear(),
+    calendarState.currentDate.getMonth() + offset,
+    1
+  );
+
+  renderCalendar(calendarState.feastData);
+}
+
+function setupDetailToggle() {
+  const panel = document.getElementById("calendarDetailPanel");
+  const btn = document.getElementById("toggleDetailBtn");
+
+  if (!panel || !btn) return;
+
+  btn.addEventListener("click", () => {
+    panel.classList.toggle("is-collapsed");
+
+    if (panel.classList.contains("is-collapsed")) {
+      btn.textContent = "+";
+    } else {
+      btn.textContent = "−";
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnRefreshTodayBiblical = document.getElementById("btnRefreshTodayBiblical");
+  const btnLoadFeasts = document.getElementById("btnLoadFeasts");
+  const btnPrevMonth = document.getElementById("btnPrevMonth");
+  const btnNextMonth = document.getElementById("btnNextMonth");
+  const btnTodayMonth = document.getElementById("btnTodayMonth");
+
+  if (btnLoadFeasts) {
+    btnLoadFeasts.addEventListener("click", loadFeasts);
+  }
+
+  if (btnRefreshTodayBiblical) {
+    btnRefreshTodayBiblical.addEventListener("click", loadTodayBiblicalPanel);
+  }
+
+  if (btnPrevMonth) {
+    btnPrevMonth.addEventListener("click", () => moveCalendarMonth(-1));
+  }
+
+  if (btnNextMonth) {
+    btnNextMonth.addEventListener("click", () => moveCalendarMonth(1));
+  }
+
+  if (btnTodayMonth) {
+    btnTodayMonth.addEventListener("click", () => {
+      if (!calendarState.feastData) return;
+      calendarState.currentDate = normalizeDateInput(calendarState.feastData.civil_date);
+      calendarState.selectedDate = calendarState.feastData.civil_date;
+      renderCalendar(calendarState.feastData);
+    });
+  }
+  loadTodayBiblicalPanel();
+  setupDetailToggle();
+  loadFeasts();
+});
+
