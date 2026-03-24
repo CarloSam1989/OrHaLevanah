@@ -1,0 +1,23 @@
+{
+  "name": "or-halevanah-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal bíblico móvil con Capacitor",
+  "scripts": {
+    "start": "npx serve .",
+    "build": "mkdir -p www && xcopy /E /I /Y assets www\\assets & copy index.html www\\index.html & copy styles.css www\\styles.css & copy app.js www\\app.js & copy manifest.webmanifest www\\manifest.webmanifest & copy service-worker.js www\\service-worker.js",
+    "copy:web": "mkdir -p www && xcopy /E /I /Y assets www\\assets & copy index.html www\\index.html & copy styles.css www\\styles.css & copy app.js www\\app.js & copy manifest.webmanifest www\\manifest.webmanifest & copy service-worker.js www\\service-worker.js",
+    "cap:sync": "npm run copy:web && npx cap sync",
+    "android": "npm run copy:web && npx cap open android",
+    "ios": "npm run copy:web && npx cap open ios"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0"
+  }
+}
