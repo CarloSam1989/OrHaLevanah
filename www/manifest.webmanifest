@@ -1,0 +1,8 @@
+{
+  "name": "Or HaLevanah",
+  "short_name": "OrHaLevanah",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#111827"
+}

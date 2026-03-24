@@ -4,12 +4,12 @@
   "private": true,
   "description": "Portal bíblico móvil con Capacitor",
   "scripts": {
-    "start": "npx serve .",
-    "build": "mkdir -p www && xcopy /E /I /Y assets www\\assets & copy index.html www\\index.html & copy styles.css www\\styles.css & copy app.js www\\app.js & copy manifest.webmanifest www\\manifest.webmanifest & copy service-worker.js www\\service-worker.js",
-    "copy:web": "mkdir -p www && xcopy /E /I /Y assets www\\assets & copy index.html www\\index.html & copy styles.css www\\styles.css & copy app.js www\\app.js & copy manifest.webmanifest www\\manifest.webmanifest & copy service-worker.js www\\service-worker.js",
-    "cap:sync": "npm run copy:web && npx cap sync",
-    "android": "npm run copy:web && npx cap open android",
-    "ios": "npm run copy:web && npx cap open ios"
+      "start": "npx serve mobile_web",
+      "build": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"if (Test-Path 'www') { Remove-Item 'www\\*' -Recurse -Force -ErrorAction SilentlyContinue }; New-Item -ItemType Directory -Force -Path 'www' | Out-Null; Copy-Item 'mobile_web\\index.html' 'www\\index.html' -Force; Copy-Item 'mobile_web\\styles.css' 'www\\styles.css' -Force; Copy-Item 'mobile_web\\app.js' 'www\\app.js' -Force; Copy-Item 'mobile_web\\manifest.webmanifest' 'www\\manifest.webmanifest' -Force; Copy-Item 'mobile_web\\sw.js' 'www\\sw.js' -Force; if (Test-Path 'mobile_web\\assets') { Copy-Item 'mobile_web\\assets' 'www\\assets' -Recurse -Force }\"",
+      "copy:web": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"if (Test-Path 'www') { Remove-Item 'www\\*' -Recurse -Force -ErrorAction SilentlyContinue }; New-Item -ItemType Directory -Force -Path 'www' | Out-Null; Copy-Item 'mobile_web\\index.html' 'www\\index.html' -Force; Copy-Item 'mobile_web\\styles.css' 'www\\styles.css' -Force; Copy-Item 'mobile_web\\app.js' 'www\\app.js' -Force; Copy-Item 'mobile_web\\manifest.webmanifest' 'www\\manifest.webmanifest' -Force; Copy-Item 'mobile_web\\sw.js' 'www\\sw.js' -Force; if (Test-Path 'mobile_web\\assets') { Copy-Item 'mobile_web\\assets' 'www\\assets' -Recurse -Force }\"",
+      "cap:sync": "npm run copy:web && npx cap sync",
+      "android": "npm run copy:web && npx cap open android",
+      "ios": "npm run copy:web && npx cap open ios"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",

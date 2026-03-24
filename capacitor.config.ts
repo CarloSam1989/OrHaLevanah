@@ -1,13 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.moventanio.orhalevanah',
+  appId: 'com.orhalevanah.app',
   appName: 'Or HaLevanah',
-  webDir: 'mobile_web',
-  bundledWebRuntime: false,
-  server: {
-    cleartext: true
-  }
+  webDir: 'www'
 };
 
 export default config;
