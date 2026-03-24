@@ -2,21 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Or HaLevanah</title>
   <meta name="description" content="Calendario bíblico observacional basado en Jerusalén. Fiestas bíblicas, Shabat, Omer y cabeza de mes.">
-  <link rel="stylesheet" href="/static/css/styles.css?v=5">
-  <link rel="manifest" href="/static/manifest.json">
-  <link rel="icon" type="image/x-icon" href="/static/img/logo.ico">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="container portal-shell">
     <section class="portal-hero">
       <div class="portal-hero-content">
-
         <div class="portal-hero-header">
           <div class="portal-logo-shell">
-            <img src="/static/img/logo.png" alt="Or HaLevanah" class="portal-logo">
+            <img src="assets/logo.png" alt="Or HaLevanah" class="portal-logo">
           </div>
 
           <div class="portal-hero-text">
@@ -37,7 +35,6 @@
           <span class="portal-badge">🌾 Omer</span>
           <span class="portal-badge">📜 Levítico 23</span>
         </div>
-
       </div>
     </section>
 
@@ -82,6 +79,8 @@
         </div>
       </div>
 
+      <div id="feastsSummary" class="empty-state">Cargando información...</div>
+
       <div class="calendar-shell-full">
         <div class="calendar-panel">
           <div class="calendar-header">
@@ -99,70 +98,81 @@
           </div>
 
           <div id="calendarGrid" class="calendar-grid"></div>
+        </div>
+
+        <div id="calendarDetailPanel" class="calendar-detail-panel is-hidden">
+          <div class="calendar-detail-header">
+            <h3 id="calendarDetailTitle">Detalle del día</h3>
+            <button id="toggleDetailBtn" type="button" class="toggle-detail-btn">−</button>
+          </div>
+          <div id="calendarDetailContent">
+            <div class="calendar-detail-placeholder">
+              Selecciona un día del calendario para ver su detalle bíblico.
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-legend">
+          <h3>🧭 Leyenda del calendario</h3>
+
+          <div class="legend-grid">
+            <div class="legend-item">
+              <span class="calendar-marker shabbat">🕯️</span>
+              <span>Shabat (viernes atardecer → sábado atardecer)</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker feast theme-pesaj">🕊️</span>
+              <span>Pesaj</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker feast theme-matzot">🍞</span>
+              <span>Panes sin levadura (Matzot)</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker feast theme-bikkurim">🌾</span>
+              <span>Bikkurim (Primeros frutos)</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker feast theme-shavuot">📜</span>
+              <span>Shavuot</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker feast theme-trumpets">📯</span>
+              <span>Trompetas</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker feast theme-kippur">🕯️</span>
+              <span>Yom Kippur</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker feast theme-sukkot">⛺</span>
+              <span>Sukkot (Tabernáculos)</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker new-month">🌒</span>
+              <span>Cabeza de mes bíblico</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="calendar-marker">🌇</span>
+              <span>Inicio de día bíblico (atardecer)</span>
+            </div>
+
+            <div class="legend-item">
+              <span class="omer-label">Omer</span>
+              <span>Conteo del Omer</span>
+            </div>
+          </div>
+        </div>
       </div>
-
-  <div class="calendar-legend">
-    <h3>🧭 Leyenda del calendario</h3>
-
-    <div class="legend-grid">
-      <div class="legend-item">
-        <span class="calendar-marker shabbat">🕯️</span>
-        <span>Shabat (viernes atardecer → sábado atardecer)</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker feast theme-pesaj">🕊️</span>
-        <span>Pesaj</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker feast theme-matzot">🍞</span>
-        <span>Panes sin levadura (Matzot)</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker feast theme-bikkurim">🌾</span>
-        <span>Bikkurim (Primeros frutos)</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker feast theme-shavuot">📜</span>
-        <span>Shavuot</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker feast theme-trumpets">📯</span>
-        <span>Trompetas</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker feast theme-kippur">🕯️</span>
-        <span>Yom Kippur</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker feast theme-sukkot">⛺</span>
-        <span>Sukkot (Tabernáculos)</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker new-month">🌒</span>
-        <span>Cabeza de mes bíblico</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="calendar-marker">🌇</span>
-        <span>Inicio de día bíblico (atardecer)</span>
-      </div>
-
-      <div class="legend-item">
-        <span class="omer-label">Omer</span>
-        <span>Conteo del Omer</span>
-      </div>
-    </div>
-  </div>
-
-</div>
     </section>
 
     <section class="card portal-info-card">
@@ -188,6 +198,6 @@
 
   <div id="calendarHoverCard" class="calendar-hover-card-simple"></div>
 
-  <script src="/static/js/app.js?v=5"></script>
+  <script src="app.js"></script>
 </body>
 </html>
