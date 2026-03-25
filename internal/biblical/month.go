@@ -11,15 +11,13 @@ func normalizeDate(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }
 
-// isCandidateMonthStart evalúa si ese día civil, al atardecer en Jerusalén,
-// puede ser cabeza de mes observacional.
-// El día 1 bíblico comienza al atardecer de esa fecha civil.
 func isCandidateMonthStart(day time.Time) bool {
 	day = normalizeDate(day)
 	loc := day.Location()
 
 	sunset := solar.ApproxSunsetJerusalem(day)
 
+	// Revisamos poco después del atardecer.
 	checkTime := time.Date(
 		day.Year(),
 		day.Month(),
@@ -37,9 +35,9 @@ func isCandidateMonthStart(day time.Time) bool {
 	return ok
 }
 
-// FindEstimatedMonthStart busca la cabeza de mes vigente.
-// Si aún no cae el sol hoy, el mes vigente no puede comenzar hoy al atardecer,
-// así que se busca hasta ayer.
+// FindEstimatedMonthStart encuentra la cabeza de mes vigente.
+// Si hoy todavía no llega el atardecer, el mes vigente no puede empezar hoy,
+// por eso se busca hasta ayer.
 func FindEstimatedMonthStart(now time.Time) time.Time {
 	now = now.In(now.Location())
 	today := normalizeDate(now)
@@ -50,8 +48,6 @@ func FindEstimatedMonthStart(now time.Time) time.Time {
 		searchEnd = today.AddDate(0, 0, -1)
 	}
 
-	// Buscar hacia atrás en una ventana amplia de 35 días
-	// para no romper el cálculo del mes actual.
 	for i := 0; i <= 35; i++ {
 		candidate := searchEnd.AddDate(0, 0, -i)
 		if isCandidateMonthStart(candidate) {
@@ -63,14 +59,20 @@ func FindEstimatedMonthStart(now time.Time) time.Time {
 	return normalizeDate(searchEnd)
 }
 
-// FindNextEstimatedMonthStart busca el próximo posible inicio de mes
-// a partir del mes actual. Se limita a la ventana normal de 29-30 días
-// con pequeño margen.
+// FindNextEstimatedMonthStart busca la próxima cabeza de mes estimada
+// partiendo del inicio actual.
 func FindNextEstimatedMonthStart(currentMonthStart time.Time) time.Time {
 	currentMonthStart = normalizeDate(currentMonthStart)
 
-	// Un mes lunar observacional normal cae alrededor de 29 o 30 días.
-	// Dejamos margen por seguridad.
+	// Ventana típica de mes lunar observacional: 29 o 30 días,
+	// con un margen pequeño.
+	for i := 29; i <= 31; i++ {
+		candidate := currentMonthStart.AddDate(0, 0, i)
+		if isCandidateMonthStart(candidate) {
+			return normalizeDate(candidate)
+		}
+	}
+
 	for i := 28; i <= 32; i++ {
 		candidate := currentMonthStart.AddDate(0, 0, i)
 		if isCandidateMonthStart(candidate) {
@@ -78,7 +80,6 @@ func FindNextEstimatedMonthStart(currentMonthStart time.Time) time.Time {
 		}
 	}
 
-	// Fallback estable
 	return normalizeDate(currentMonthStart.AddDate(0, 0, 30))
 }
 
@@ -88,7 +89,6 @@ func CalculateBiblicalDay(monthStart, now time.Time, afterSunset bool) int {
 	monthStart = normalizeDate(monthStart)
 	monthStartSunset := solar.ApproxSunsetJerusalem(monthStart)
 
-	// Si aún no ha comenzado el mes, protegemos el cálculo.
 	if now.Before(monthStartSunset) {
 		return 1
 	}

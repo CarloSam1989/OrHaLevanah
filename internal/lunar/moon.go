@@ -34,17 +34,28 @@ func CalculateMoonInfo(t time.Time) models.MoonInfo {
 	}
 }
 
+// IsPossibleNewMonthObservational usa una regla conservadora:
+// - debe ser después del atardecer en Jerusalén
+// - la luna no debe ser demasiado joven
+// - pero tampoco tan vieja que la ventana principal ya haya pasado
+//
+// Nota: esto NO sustituye un avistamiento humano real.
+// Solo mejora la estimación actual sin romper el sistema.
 func IsPossibleNewMonthObservational(ageDays float64, afterSunset bool) (bool, string) {
 	if !afterSunset {
 		return false, "Aún no es después del atardecer en Jerusalén"
 	}
 
-	if ageDays >= 1.0 && ageDays <= 2.5 {
-		return true, "Posible inicio observacional del mes: luna joven visible potencial después del atardecer"
+	if ageDays < 1.10 {
+		return false, "La luna es demasiado joven para una observación inicial confiable"
 	}
 
-	if ageDays < 1.0 {
-		return false, "La luna es demasiado joven para una observación inicial confiable"
+	if ageDays >= 1.10 && ageDays <= 2.20 {
+		return true, "Ventana conservadora para posible inicio observacional del mes en Jerusalén"
+	}
+
+	if ageDays > 2.20 && ageDays <= 3.00 {
+		return false, "La luna ya parece demasiado avanzada para marcar con seguridad la cabeza del mes"
 	}
 
 	return false, "La ventana principal de observación inicial del creciente probablemente ya pasó"
