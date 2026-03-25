@@ -133,20 +133,23 @@ func BiblicalJerusalemMonthHandler(w http.ResponseWriter, r *http.Request) {
 
 	moonInfo := lunar.CalculateMoonInfo(nowJerusalem)
 	monthStart := biblical.FindEstimatedMonthStart(nowJerusalem)
+	nextMonthStart := biblical.FindNextEstimatedMonthStart(monthStart)
 	biblicalDay := biblical.CalculateBiblicalDay(monthStart, nowJerusalem, afterSunset)
 
 	data := models.BiblicalMonthResponse{
-		CivilDate:        nowJerusalem.Format("2006-01-02"),
-		BiblicalDate:     biblicalDate.Format("2006-01-02"),
-		JerusalemTime:    nowJerusalem.Format("2006-01-02 15:04:05"),
-		SunsetTime:       sunset.Format("15:04"),
-		AfterSunset:      afterSunset,
-		DayNote:          "El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.",
-		MonthStart:       monthStart.Format("2006-01-02"),
-		BiblicalDay:      biblicalDay,
-		IsPossibleDayOne: biblicalDay == 1,
-		Location:         jerusalem,
-		Moon:             moonInfo,
+		CivilDate:            nowJerusalem.Format("2006-01-02"),
+		BiblicalDate:         biblicalDate.Format("2006-01-02"),
+		JerusalemTime:        nowJerusalem.Format("2006-01-02 15:04:05"),
+		SunsetTime:           sunset.Format("15:04"),
+		AfterSunset:          afterSunset,
+		DayNote:              "El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.",
+		MonthStart:           monthStart.Format("2006-01-02"),
+		NextMonthStart:       nextMonthStart.Format("2006-01-02"),
+		BiblicalDay:          biblicalDay,
+		IsPossibleDayOne:     biblicalDay == 1,
+		IsPossibleNextDayOne: false,
+		Location:             jerusalem,
+		Moon:                 moonInfo,
 	}
 
 	response := models.ApiResponse{
@@ -176,7 +179,7 @@ func FeastsJerusalemHandler(w http.ResponseWriter, r *http.Request) {
 
 	monthStart := biblical.FindEstimatedMonthStart(nowJerusalem)
 	biblicalDay := biblical.CalculateBiblicalDay(monthStart, nowJerusalem, afterSunset)
-	biblicalMonth := biblical.GetCurrentBiblicalMonth()
+	biblicalMonth := biblical.GetCurrentBiblicalMonthAt(nowJerusalem)
 
 	currentFeasts := feasts.GetCurrentFeasts(monthStart, nowJerusalem)
 	upcomingFeasts := feasts.GetUpcomingFeasts(monthStart, nowJerusalem)
