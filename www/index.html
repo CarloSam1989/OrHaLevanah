@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+  />
+  <meta name="theme-color" content="#07111f" />
   <title>Or HaLevanah</title>
 
   <link rel="manifest" href="manifest.webmanifest" />
@@ -12,15 +16,29 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand-wrap">
-        <h1 class="brand-title">Or HaLevanah</h1>
-        <p class="brand-subtitle" id="headerSubtitle">Calendario Bíblico</p>
+        <div class="brand-row">
+          <div class="brand-logo-wrap">
+            <img src="logo.png" alt="Logo Or HaLevanah" class="brand-logo" />
+          </div>
+
+          <div class="brand-text">
+            <h1 class="brand-title">Or HaLevanah</h1>
+            <p class="brand-subtitle" id="headerSubtitle">Calendario Bíblico</p>
+          </div>
+        </div>
       </div>
     </header>
 
     <main class="main-content">
+      <!-- INICIO -->
       <section id="view-inicio" class="view active">
-        <div class="hero-card">
+        <div class="hero-card hero-card-logo">
           <div class="hero-badge">Portal Bíblico</div>
+
+          <div class="hero-brand-center">
+            <img src="logo.png" alt="Logo Or HaLevanah" class="hero-logo" />
+          </div>
+
           <h2>Bienvenido</h2>
           <p>
             Consulta la fecha bíblica, la cabeza de mes estimada en Jerusalén,
@@ -91,8 +109,13 @@
           </div>
         </div>
 
+        <div class="card quick-actions">
+          <button class="action-btn" data-go-view="hoy">Ver detalle de hoy</button>
+          <button class="action-btn secondary" data-go-view="calendario">Abrir calendario</button>
+        </div>
       </section>
 
+      <!-- HOY -->
       <section id="view-hoy" class="view">
         <div class="card">
           <div class="card-title-row">
@@ -149,16 +172,36 @@
           </div>
         </div>
 
+        <div class="card">
+          <div class="card-title-row">
+            <h3>Fiestas actuales</h3>
+          </div>
+          <div id="hoyCurrentFeasts" class="list-stack empty-state">
+            No hay fiestas activas para este día.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title-row">
+            <h3>Próximas fiestas</h3>
+          </div>
+          <div id="hoyUpcomingFeasts" class="list-stack empty-state">
+            Cargando próximas fiestas...
+          </div>
+        </div>
       </section>
 
+      <!-- CALENDARIO -->
       <section id="view-calendario" class="view">
         <div class="card">
           <div class="calendar-head">
             <button id="prevMonthBtn" class="icon-btn" type="button">‹</button>
+
             <div class="calendar-month-wrap">
               <h3 id="calendarMonthLabel">Mes</h3>
               <span id="calendarMonthSubLabel">Calendario civil con referencia bíblica</span>
             </div>
+
             <button id="nextMonthBtn" class="icon-btn" type="button">›</button>
           </div>
 
@@ -184,8 +227,80 @@
           </div>
         </div>
 
+        <div class="card">
+          <div class="card-title-row">
+            <h3>Detalle de fecha seleccionada</h3>
+          </div>
+
+          <div class="detail-stack">
+            <div class="detail-box">
+              <span class="label">Fecha seleccionada</span>
+              <strong id="selectedCivilDate">Selecciona un día</strong>
+            </div>
+
+            <div class="detail-box">
+              <span class="label">Fecha bíblica</span>
+              <strong id="selectedBiblicalDate">-</strong>
+            </div>
+
+            <div class="detail-box">
+              <span class="label">Hora Jerusalén</span>
+              <strong id="selectedJerusalemTime">-</strong>
+            </div>
+
+            <div class="detail-box">
+              <span class="label">Atardecer</span>
+              <strong id="selectedSunsetTime">-</strong>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="label">Día bíblico actual</span>
+              <strong id="selectedBiblicalDayNumber">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Cabeza de mes</span>
+              <strong id="selectedMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Próxima cabeza de mes</span>
+              <strong id="selectedNextMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Después del atardecer</span>
+              <strong id="selectedAfterSunset">-</strong>
+            </div>
+          </div>
+
+          <div class="note-box" id="selectedDayNote">
+            Elige una fecha para ver el detalle.
+          </div>
+
+          <div class="selected-feasts-wrap">
+            <div class="card-title-row" style="margin-top: 16px;">
+              <h3>Fiestas de la fecha seleccionada</h3>
+            </div>
+
+            <div id="selectedCurrentFeasts" class="list-stack empty-state">
+              Selecciona un día para ver sus fiestas.
+            </div>
+
+            <div class="card-title-row" style="margin-top: 16px;">
+              <h3>Próximas fiestas desde esta fecha</h3>
+            </div>
+
+            <div id="selectedUpcomingFeasts" class="list-stack empty-state">
+              Selecciona un día para ver próximas fiestas.
+            </div>
+          </div>
+        </div>
       </section>
 
+      <!-- FIESTAS -->
       <section id="view-fiestas" class="view">
         <div class="card">
           <div class="card-title-row">
@@ -209,6 +324,7 @@
         </div>
       </section>
 
+      <!-- AJUSTES -->
       <section id="view-ajustes" class="view">
         <div class="card">
           <div class="card-title-row">
@@ -221,7 +337,7 @@
           </div>
 
           <div class="note-box">
-            Esta app móvil consume la API en Railway y presenta la información principal del portal web en formato móvil.
+            Esta app móvil consume la API en Railway y presenta la información principal del portal web en formato Android.
           </div>
         </div>
       </section>
