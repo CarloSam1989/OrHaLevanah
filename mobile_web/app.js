@@ -5,6 +5,21 @@ const MONTHS_ES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
+const BIBLICAL_MONTHS = [
+  "Aviv",
+  "Segundo mes",
+  "Tercer mes",
+  "Cuarto mes",
+  "Quinto mes",
+  "Sexto mes",
+  "Séptimo mes",
+  "Octavo mes",
+  "Noveno mes",
+  "Décimo mes",
+  "Undécimo mes",
+  "Duodécimo mes"
+];
+
 const state = {
   currentView: "inicio",
   currentMonthDate: new Date(),
@@ -12,9 +27,9 @@ const state = {
   todayPayload: null,
   todayFeastsPayload: null,
   monthPayload: null,
-  selectedDatePayload: null
+  selectedDatePayload: null,
+  selectedDateFeastsPayload: null
 };
-
 
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
@@ -29,10 +44,6 @@ async function fetchJson(url) {
   } catch {
     throw new Error(`Respuesta no JSON: ${text}`);
   }
-}
-
-function isShabat(dateObj) {
-  return dateObj.getDay() === 6; // sábado
 }
 
 function safeText(value, fallback = "-") {
@@ -59,30 +70,28 @@ function parseYmdToLocalDate(ymd) {
   return new Date(year, month - 1, day);
 }
 
-function formatDateLongEs(ymd) {
-  const date = parseYmdToLocalDate(ymd);
-  if (!date) return safeText(ymd, "-");
-  return date.toLocaleDateString("es-EC", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric"
-  });
+function getBiblicalMonthName(monthNumber) {
+  if (!monthNumber || monthNumber < 1 || monthNumber > 12) return null;
+  return BIBLICAL_MONTHS[monthNumber - 1];
 }
 
 function formatBiblicalDate(data) {
   if (!data) return "-";
 
-  const monthNames = [
-    "Aviv", "Segundo mes", "Tercer mes", "Cuarto mes",
-    "Quinto mes", "Sexto mes", "Séptimo mes",
-    "Octavo mes", "Noveno mes", "Décimo mes",
-    "Undécimo mes", "Duodécimo mes"
-  ];
+  const day = data.biblical_day;
+  const monthNumber = data.biblical_month;
+  const monthName = data.month_name || getBiblicalMonthName(monthNumber);
 
-  if (data.biblical_day && data.biblical_month) {
-    const name = monthNames[data.biblical_month - 1] || `Mes ${data.biblical_month}`;
-    return `${data.biblical_day} de ${name}`;
+  if (day && monthName) {
+    return `${day} de ${monthName}`;
+  }
+
+  if (day && monthNumber) {
+    return `${day} del mes ${monthNumber}`;
+  }
+
+  if (data.biblical_date) {
+    return data.biblical_date;
   }
 
   return "-";
@@ -167,7 +176,7 @@ async function getFeastsJerusalem() {
 }
 
 async function getBiblicalByDate(date) {
-  return fetchJson(`${API_BASE}/api/biblical/jerusalem/date?date=${date}`);
+  return fetchJson(`${API_BASE}/api/biblical/jerusalem/date?date=${encodeURIComponent(date)}`);
 }
 
 async function getFeastsByDate(date) {
@@ -205,12 +214,14 @@ function getAfterSunsetText(value) {
 }
 
 function fillMonthSummaryUI(monthData) {
+  const biblicalText = formatBiblicalDate(monthData);
+
   const bindings = {
-    inicioBiblicalDayNumber: monthData?.biblical_day,
+    inicioBiblicalDayNumber: biblicalText,
     inicioMonthStart: monthData?.month_start,
     inicioNextMonthStart: monthData?.next_month_start,
     inicioAfterSunset: getAfterSunsetText(monthData?.after_sunset),
-    hoyBiblicalDayNumber: monthData?.biblical_day,
+    hoyBiblicalDayNumber: biblicalText,
     hoyMonthStart: monthData?.month_start,
     hoyNextMonthStart: monthData?.next_month_start,
     hoyAfterSunset: getAfterSunsetText(monthData?.after_sunset)
@@ -227,7 +238,7 @@ function fillMonthSummaryUI(monthData) {
       monthStatus.textContent = "Posible día 1";
       monthStatus.className = "pill success";
     } else {
-      monthStatus.textContent = `Día ${safeText(monthData?.biblical_day, "-")}`;
+      monthStatus.textContent = biblicalText !== "-" ? biblicalText : "Calendario bíblico";
       monthStatus.className = "pill";
     }
   }
@@ -241,25 +252,27 @@ function fillMonthSummaryUI(monthData) {
 }
 
 function fillTodayUI(todayData, monthData) {
-  document.getElementById("inicioCivilDate").textContent = safeText(todayData?.civil_date, "Sin fecha");
-  document.getElementById("inicioBiblicalDate").textContent = formatBiblicalDate(todayData || monthData);
-  document.getElementById("inicioJerusalemTime").textContent = safeText(todayData?.jerusalem_time || monthData?.jerusalem_time, "No disponible");
-  document.getElementById("inicioSunset").textContent = safeText(todayData?.sunset_time || monthData?.sunset_time, "No disponible");
+  const merged = { ...(monthData || {}), ...(todayData || {}) };
+
+  document.getElementById("inicioCivilDate").textContent = safeText(merged?.civil_date, "Sin fecha");
+  document.getElementById("inicioBiblicalDate").textContent = formatBiblicalDate(merged);
+  document.getElementById("inicioJerusalemTime").textContent = safeText(merged?.jerusalem_time, "No disponible");
+  document.getElementById("inicioSunset").textContent = safeText(merged?.sunset_time, "No disponible");
   document.getElementById("inicioDayNote").textContent = safeText(
-    monthData?.day_note || todayData?.day_note,
+    merged?.day_note,
     "Información cargada correctamente."
   );
 
-  document.getElementById("hoyCivilDate").textContent = safeText(todayData?.civil_date, "Sin fecha");
-  document.getElementById("hoyBiblicalDate").textContent = formatBiblicalDate(todayData || monthData);
-  document.getElementById("hoyJerusalemTime").textContent = safeText(todayData?.jerusalem_time || monthData?.jerusalem_time, "No disponible");
-  document.getElementById("hoySunsetTime").textContent = safeText(todayData?.sunset_time || monthData?.sunset_time, "No disponible");
+  document.getElementById("hoyCivilDate").textContent = safeText(merged?.civil_date, "Sin fecha");
+  document.getElementById("hoyBiblicalDate").textContent = formatBiblicalDate(merged);
+  document.getElementById("hoyJerusalemTime").textContent = safeText(merged?.jerusalem_time, "No disponible");
+  document.getElementById("hoySunsetTime").textContent = safeText(merged?.sunset_time, "No disponible");
   document.getElementById("hoyDayNote").textContent = safeText(
-    monthData?.day_note || todayData?.day_note,
+    merged?.day_note,
     "Sin nota disponible."
   );
 
-  fillMonthSummaryUI(monthData || {});
+  fillMonthSummaryUI(merged);
 }
 
 function fillSelectedExtraUI(data) {
@@ -269,7 +282,7 @@ function fillSelectedExtraUI(data) {
   const selectedAfterSunset = document.getElementById("selectedAfterSunset");
 
   if (selectedBiblicalDayNumber) {
-    selectedBiblicalDayNumber.textContent = safeText(data?.biblical_day, "-");
+    selectedBiblicalDayNumber.textContent = formatBiblicalDate(data);
   }
   if (selectedMonthStart) {
     selectedMonthStart.textContent = safeText(data?.month_start, "-");
@@ -282,119 +295,29 @@ function fillSelectedExtraUI(data) {
   }
 }
 
-async function loadTodayData() {
-  try {
-    const [todayPayload, monthPayload, feastsPayload] = await Promise.all([
-      getTodayBiblical(),
-      getMonthBiblical(),
-      getFeastsJerusalem().catch(() => null)
-    ]);
-
-    const todayData = todayPayload?.data || {};
-    const monthData = monthPayload?.data || {};
-    state.todayPayload = todayData;
-    state.monthPayload = monthData;
-
-    fillTodayUI(todayData, monthData);
-
-    const todayDate = todayData.civil_date || monthData.civil_date || formatDateToYMD(new Date());
-    state.selectedDate = todayDate;
-
-    let feastData = feastsPayload?.data || null;
-
-    if (!feastData || (!Array.isArray(feastData.current_feasts) && !Array.isArray(feastData.upcoming_feasts))) {
-      const fallbackFeasts = await getFeastsByDate(todayDate);
-      feastData = fallbackFeasts?.data || {
-        current_feasts: [],
-        upcoming_feasts: []
-      };
-    }
-
-    state.todayFeastsPayload = feastData;
-
-    renderFeastList(
-      "hoyCurrentFeasts",
-      feastData.current_feasts || [],
-      "No hay fiestas activas para este día."
-    );
-
-    renderFeastList(
-      "hoyUpcomingFeasts",
-      feastData.upcoming_feasts || [],
-      "No se encontraron próximas fiestas."
-    );
-
-    renderFeastList(
-      "fiestasCurrentList",
-      feastData.current_feasts || [],
-      "No hay fiestas activas para este día."
-    );
-
-    renderFeastList(
-      "fiestasUpcomingList",
-      feastData.upcoming_feasts || [],
-      "No se encontraron próximas fiestas."
-    );
-
-    await loadSelectedDate(todayDate);
-  } catch (error) {
-    console.error("Error cargando hoy:", error);
-
-    [
-      "inicioCivilDate", "inicioBiblicalDate", "inicioJerusalemTime", "inicioSunset",
-      "hoyCivilDate", "hoyBiblicalDate", "hoyJerusalemTime", "hoySunsetTime"
-    ].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = "Error";
-    });
-
-    const inicioDayNote = document.getElementById("inicioDayNote");
-    const hoyDayNote = document.getElementById("hoyDayNote");
-    if (inicioDayNote) inicioDayNote.textContent = error.message || "Failed to fetch";
-    if (hoyDayNote) hoyDayNote.textContent = error.message || "Failed to fetch";
-
-    renderFeastList("hoyCurrentFeasts", [], "No fue posible cargar las fiestas actuales.");
-    renderFeastList("hoyUpcomingFeasts", [], "No fue posible cargar las próximas fiestas.");
-    renderFeastList("fiestasCurrentList", [], "No fue posible cargar las fiestas actuales.");
-    renderFeastList("fiestasUpcomingList", [], "No fue posible cargar las próximas fiestas.");
-  }
+function isShabat(dateObj) {
+  return dateObj.getDay() === 6;
 }
 
-async function loadSelectedDate(dateString) {
-  const selectedCivilDate = document.getElementById("selectedCivilDate");
-  const selectedBiblicalDate = document.getElementById("selectedBiblicalDate");
-  const selectedJerusalemTime = document.getElementById("selectedJerusalemTime");
-  const selectedSunsetTime = document.getElementById("selectedSunsetTime");
-  const selectedDayNote = document.getElementById("selectedDayNote");
+function normalizeFeastPool() {
+  const fromToday = state.todayFeastsPayload || {};
+  const fromSelected = state.selectedDateFeastsPayload || {};
 
-  selectedCivilDate.textContent = dateString;
-  selectedBiblicalDate.textContent = "Cargando...";
-  selectedJerusalemTime.textContent = "Cargando...";
-  selectedSunsetTime.textContent = "Cargando...";
-  selectedDayNote.textContent = "Consultando detalle del día...";
+  return [
+    ...(Array.isArray(fromToday.current_feasts) ? fromToday.current_feasts : []),
+    ...(Array.isArray(fromToday.upcoming_feasts) ? fromToday.upcoming_feasts : []),
+    ...(Array.isArray(fromSelected.current_feasts) ? fromSelected.current_feasts : []),
+    ...(Array.isArray(fromSelected.upcoming_feasts) ? fromSelected.upcoming_feasts : [])
+  ];
+}
 
-  fillSelectedExtraUI(null);
-
-  try {
-    const payload = await getBiblicalByDate(dateString);
-    const data = payload?.data || {};
-    state.selectedDatePayload = data;
-
-    selectedCivilDate.textContent = safeText(data.civil_date, dateString);
-    selectedBiblicalDate.textContent = formatBiblicalDate(data);
-    selectedJerusalemTime.textContent = safeText(data.jerusalem_time, "No disponible");
-    selectedSunsetTime.textContent = safeText(data.sunset_time, "No disponible");
-    selectedDayNote.textContent = safeText(data.day_note, "Sin nota disponible.");
-
-    fillSelectedExtraUI(data);
-  } catch (error) {
-    console.error("Error cargando fecha seleccionada:", error);
-    selectedBiblicalDate.textContent = "No disponible";
-    selectedJerusalemTime.textContent = "No disponible";
-    selectedSunsetTime.textContent = "No disponible";
-    selectedDayNote.textContent = error.message || "No se pudo cargar el detalle.";
-    fillSelectedExtraUI(null);
-  }
+function getFeastsForDate(ymd) {
+  const pool = normalizeFeastPool();
+  return pool.filter((item) => {
+    const d1 = item?.gregorian_date;
+    const d2 = item?.gregorian_start_date;
+    return d1 === ymd || d2 === ymd;
+  });
 }
 
 function buildCalendarChip(label, className = "") {
@@ -451,29 +374,36 @@ function renderCalendar() {
       cell.classList.add("next-month-start");
     }
 
+    if (isShabat(dateObj)) {
+      cell.classList.add("shabat");
+    }
+
+    const dayFeasts = getFeastsForDate(ymd);
+    if (dayFeasts.length > 0) {
+      cell.classList.add("has-feast");
+    }
+
     const chips = [];
 
-    // 🟡 SHABAT
+    if (monthStartYmd && isSameYMD(ymd, monthStartYmd)) {
+      chips.push(buildCalendarChip("Jodesh", "chip-jodesh"));
+    }
+
+    if (nextMonthStartYmd && isSameYMD(ymd, nextMonthStartYmd)) {
+      chips.push(buildCalendarChip("Próx.", "chip-next"));
+    }
+
+    if (isSameYMD(ymd, todayString)) {
+      chips.push(buildCalendarChip("Hoy", "chip-today"));
+    }
+
     if (isShabat(dateObj)) {
       chips.push(buildCalendarChip("Shabat", "chip-shabat"));
     }
 
-    // 🟢 FIESTAS
-    const feastList = state.todayFeastsPayload?.upcoming_feasts || [];
-    const feastMatch = feastList.find(f => f.gregorian_date === ymd);
-
-    if (feastMatch) {
-      chips.push(buildCalendarChip(feastMatch.name, "chip-feast"));
-    }
-    if (monthStartYmd && isSameYMD(ymd, monthStartYmd)) {
-      chips.push(buildCalendarChip("Jodesh", "chip-jodesh"));
-    }
-    if (nextMonthStartYmd && isSameYMD(ymd, nextMonthStartYmd)) {
-      chips.push(buildCalendarChip("Próx.", "chip-next"));
-    }
-    if (isSameYMD(ymd, todayString)) {
-      chips.push(buildCalendarChip("Hoy", "chip-today"));
-    }
+    dayFeasts.slice(0, 2).forEach((feast) => {
+      chips.push(buildCalendarChip(feast.name, "chip-feast"));
+    });
 
     cell.innerHTML = `
       <span class="calendar-day-number">${day}</span>
@@ -488,6 +418,151 @@ function renderCalendar() {
     });
 
     grid.appendChild(cell);
+  }
+}
+
+async function loadTodayData() {
+  try {
+    const [todayPayload, monthPayload, feastsPayload] = await Promise.all([
+      getTodayBiblical(),
+      getMonthBiblical(),
+      getFeastsJerusalem().catch(() => null)
+    ]);
+
+    const todayData = todayPayload?.data || {};
+    const monthData = monthPayload?.data || {};
+
+    state.todayPayload = todayData;
+    state.monthPayload = monthData;
+
+    fillTodayUI(todayData, monthData);
+
+    const todayDate = todayData.civil_date || monthData.civil_date || formatDateToYMD(new Date());
+
+    let feastData = feastsPayload?.data || null;
+
+    if (!feastData || (!Array.isArray(feastData.current_feasts) && !Array.isArray(feastData.upcoming_feasts))) {
+      const fallbackFeasts = await getFeastsByDate(todayDate);
+      feastData = fallbackFeasts?.data || {
+        current_feasts: [],
+        upcoming_feasts: []
+      };
+    }
+
+    state.todayFeastsPayload = feastData;
+
+    renderFeastList(
+      "hoyCurrentFeasts",
+      feastData.current_feasts || [],
+      "No hay fiestas activas para este día."
+    );
+
+    renderFeastList(
+      "hoyUpcomingFeasts",
+      feastData.upcoming_feasts || [],
+      "No se encontraron próximas fiestas."
+    );
+
+    renderFeastList(
+      "fiestasCurrentList",
+      feastData.current_feasts || [],
+      "No hay fiestas activas para este día."
+    );
+
+    renderFeastList(
+      "fiestasUpcomingList",
+      feastData.upcoming_feasts || [],
+      "No se encontraron próximas fiestas."
+    );
+
+    renderCalendar();
+  } catch (error) {
+    console.error("Error cargando hoy:", error);
+
+    [
+      "inicioCivilDate", "inicioBiblicalDate", "inicioJerusalemTime", "inicioSunset",
+      "hoyCivilDate", "hoyBiblicalDate", "hoyJerusalemTime", "hoySunsetTime"
+    ].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = "Error";
+    });
+
+    const inicioDayNote = document.getElementById("inicioDayNote");
+    const hoyDayNote = document.getElementById("hoyDayNote");
+    if (inicioDayNote) inicioDayNote.textContent = error.message || "Failed to fetch";
+    if (hoyDayNote) hoyDayNote.textContent = error.message || "Failed to fetch";
+
+    renderFeastList("hoyCurrentFeasts", [], "No fue posible cargar las fiestas actuales.");
+    renderFeastList("hoyUpcomingFeasts", [], "No fue posible cargar las próximas fiestas.");
+    renderFeastList("fiestasCurrentList", [], "No fue posible cargar las fiestas actuales.");
+    renderFeastList("fiestasUpcomingList", [], "No fue posible cargar las próximas fiestas.");
+  }
+}
+
+async function loadSelectedDate(dateString) {
+  const selectedCivilDate = document.getElementById("selectedCivilDate");
+  const selectedBiblicalDate = document.getElementById("selectedBiblicalDate");
+  const selectedJerusalemTime = document.getElementById("selectedJerusalemTime");
+  const selectedSunsetTime = document.getElementById("selectedSunsetTime");
+  const selectedDayNote = document.getElementById("selectedDayNote");
+
+  selectedCivilDate.textContent = dateString;
+  selectedBiblicalDate.textContent = "Cargando...";
+  selectedJerusalemTime.textContent = "Cargando...";
+  selectedSunsetTime.textContent = "Cargando...";
+  selectedDayNote.textContent = "Consultando detalle del día...";
+
+  fillSelectedExtraUI(null);
+
+  renderFeastList("selectedCurrentFeasts", [], "Consultando fiestas del día...");
+  renderFeastList("selectedUpcomingFeasts", [], "Consultando próximas fiestas desde esta fecha...");
+
+  try {
+    const [payload, feastPayload] = await Promise.all([
+      getBiblicalByDate(dateString),
+      getFeastsByDate(dateString)
+    ]);
+
+    const data = payload?.data || {};
+    const feastData = feastPayload?.data || {
+      current_feasts: [],
+      upcoming_feasts: []
+    };
+
+    state.selectedDatePayload = data;
+    state.selectedDateFeastsPayload = feastData;
+
+    selectedCivilDate.textContent = safeText(data.civil_date, dateString);
+    selectedBiblicalDate.textContent = formatBiblicalDate(data);
+    selectedJerusalemTime.textContent = safeText(data.jerusalem_time, "No disponible");
+    selectedSunsetTime.textContent = safeText(data.sunset_time, "No disponible");
+    selectedDayNote.textContent = safeText(data.day_note, "Sin nota disponible.");
+
+    fillSelectedExtraUI(data);
+
+    renderFeastList(
+      "selectedCurrentFeasts",
+      feastData.current_feasts || [],
+      "No hay fiestas activas para esta fecha."
+    );
+
+    renderFeastList(
+      "selectedUpcomingFeasts",
+      feastData.upcoming_feasts || [],
+      "No se encontraron próximas fiestas desde esta fecha."
+    );
+
+    renderCalendar();
+  } catch (error) {
+    console.error("Error cargando fecha seleccionada:", error);
+    selectedBiblicalDate.textContent = "No disponible";
+    selectedJerusalemTime.textContent = "No disponible";
+    selectedSunsetTime.textContent = "No disponible";
+    selectedDayNote.textContent = error.message || "No se pudo cargar el detalle.";
+    fillSelectedExtraUI(null);
+
+    renderFeastList("selectedCurrentFeasts", [], "No fue posible cargar las fiestas de esta fecha.");
+    renderFeastList("selectedUpcomingFeasts", [], "No fue posible cargar las próximas fiestas.");
   }
 }
 
@@ -539,7 +614,6 @@ function bindEvents() {
     state.currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
     state.selectedDate = state.todayPayload?.civil_date || state.monthPayload?.civil_date || formatDateToYMD(now);
     renderCalendar();
-    await loadSelectedDate(state.selectedDate);
     setView("calendario");
   });
 }
@@ -549,7 +623,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setView("inicio");
   renderCalendar();
   await loadTodayData();
-  renderCalendar();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch((error) => {
