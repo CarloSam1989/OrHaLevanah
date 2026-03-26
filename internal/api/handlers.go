@@ -365,3 +365,58 @@ func AvivResetHandler(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 }
+
+func BiblicalJerusalemByDateHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		http.Error(w, "Debe proporcionar una fecha ?date=YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	jerusalem := location.GetJerusalem()
+
+	loc, err := time.LoadLocation(jerusalem.Timezone)
+	if err != nil {
+		http.Error(w, "No se pudo cargar la zona horaria", http.StatusInternalServerError)
+		return
+	}
+
+	// Parsear fecha
+	selectedDate, err := time.ParseInLocation("2006-01-02", dateStr, loc)
+	if err != nil {
+		http.Error(w, "Formato de fecha inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Calcular datos
+	sunset := solar.ApproxSunsetJerusalem(selectedDate)
+	afterSunset := biblical.IsAfterSunset(selectedDate, sunset)
+	biblicalDate := biblical.GetBiblicalDate(selectedDate, sunset)
+
+	monthStart := biblical.FindEstimatedMonthStart(selectedDate)
+	nextMonthStart := biblical.FindNextEstimatedMonthStart(monthStart)
+
+	biblicalDay := biblical.CalculateBiblicalDay(monthStart, selectedDate, afterSunset)
+
+	data := map[string]interface{}{
+		"civil_date":        selectedDate.Format("2006-01-02"),
+		"biblical_date":     biblicalDate.Format("2006-01-02"),
+		"jerusalem_time":    selectedDate.Format("2006-01-02 15:04:05"),
+		"sunset_time":       sunset.Format("15:04"),
+		"after_sunset":      afterSunset,
+		"day_note":          "El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.",
+		"month_start":       monthStart.Format("2006-01-02"),
+		"next_month_start":  nextMonthStart.Format("2006-01-02"),
+		"biblical_day":      biblicalDay,
+	}
+
+	response := models.ApiResponse{
+		Success: true,
+		Message: "Detalle por fecha calculado correctamente",
+		Data:    data,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
