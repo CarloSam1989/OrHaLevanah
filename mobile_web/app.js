@@ -301,10 +301,8 @@ function getAfterSunsetText(value) {
 function buildCompactDayNote(data) {
   const biblicalText = formatBiblicalDate(data);
   const afterSunsetText = getAfterSunsetText(data?.after_sunset);
-  const monthStart = safeText(data?.month_start, "-");
-  const nextMonthStart = safeText(data?.next_month_start, "-");
 
-  return `Fecha bíblica: ${biblicalText}. Cabeza de mes: ${monthStart}. Próxima cabeza de mes: ${nextMonthStart}. Estado en Jerusalén: ${afterSunsetText}.`;
+  return `${biblicalText} · ${afterSunsetText}`;
 }
 
 function fillTodayUI(todayData, monthData) {
