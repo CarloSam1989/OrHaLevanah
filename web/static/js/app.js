@@ -127,7 +127,7 @@ function getFeastIcon(feastName) {
   const name = (feastName || "").toLowerCase();
 
   if (name.includes("pesaj")) return "🕊️";
-  if (name.includes("levadura") || name.includes("matzot")) return "🍞";
+  if (name.includes("levadura") || name.includes("matzot")) return "🫓";
   if (name.includes("bikkurim") || name.includes("primeros frutos")) return "🌾";
   if (name.includes("shavuot")) return "📜";
   if (name.includes("trompetas")) return "📯";
