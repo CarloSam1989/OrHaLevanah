@@ -91,22 +91,25 @@ body {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
 }
 
+.brand-logo-wrap {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .brand-logo {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.brand-text {
-  min-width: 0;
-}
-
-.brand-title {
-  margin: 0;
-  font-size: 1.45rem;
-  font-weight: 800;
-  line-height: 1.1;
 }
 
 .brand-subtitle {
@@ -163,16 +166,18 @@ body {
   color: #f1e3b5;
 }
 
+
 .hero-brand-center {
   display: flex;
   justify-content: center;
-  margin: 4px 0 18px;
+  margin: 6px 0 18px;
 }
 
 .hero-logo {
   width: 124px;
   height: 124px;
   object-fit: cover;
+  display: block;
   border-radius: 28px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -576,12 +581,7 @@ button:hover {
   background: rgba(59, 130, 246, 0.16);
   border-color: rgba(96, 165, 250, 0.45);
 }
-
 @media (max-width: 640px) {
-  .main-content {
-    padding: 14px 12px 104px;
-  }
-
   .brand-logo-wrap {
     width: 46px;
     height: 46px;
@@ -600,6 +600,12 @@ button:hover {
 
   .brand-subtitle {
     font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 14px 12px 104px;
   }
 
   .today-grid,
