@@ -2,29 +2,46 @@
   --bg-1: #07111f;
   --bg-2: #0d1b2a;
   --bg-3: #101827;
-  --card: rgba(255, 255, 255, 0.07);
-  --card-border: rgba(255, 255, 255, 0.09);
-  --panel: rgba(255, 255, 255, 0.04);
+
   --text: #f4f7fb;
   --muted: #c8d3e0;
-  --blue: #2563eb;
-  --blue-soft: rgba(59, 130, 246, 0.16);
-  --blue-border: rgba(59, 130, 246, 0.45);
-  --gold: rgba(255, 215, 90, 0.9);
+
+  --card-border: rgba(255, 255, 255, 0.08);
+  --panel-border: rgba(255, 255, 255, 0.09);
+  --line: rgba(255, 255, 255, 0.06);
+
+  --gold: rgba(255, 215, 90, 0.92);
+  --gold-soft: rgba(255, 215, 90, 0.18);
+  --gold-border: rgba(255, 215, 90, 0.72);
+
   --green: rgba(16, 185, 129, 0.95);
   --green-soft: rgba(16, 185, 129, 0.16);
   --green-border: rgba(16, 185, 129, 0.45);
+
   --violet: rgba(168, 85, 247, 0.95);
   --violet-soft: rgba(168, 85, 247, 0.16);
   --violet-border: rgba(196, 181, 253, 0.55);
-  --line: rgba(255, 255, 255, 0.06);
+
+  --blue-soft: rgba(59, 130, 246, 0.16);
+  --blue-border: rgba(96, 165, 250, 0.45);
+
+  --card-bg:
+    radial-gradient(circle at top right, rgba(255, 215, 90, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(15, 47, 87, 0.88), rgba(10, 34, 64, 0.94));
+
+  --hero-bg:
+    radial-gradient(circle at top right, rgba(255, 215, 90, 0.10), transparent 28%),
+    linear-gradient(135deg, rgba(15, 47, 87, 0.95), rgba(10, 34, 64, 0.96));
+
+  --panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.03));
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   min-height: 100%;
   overflow-x: hidden;
@@ -57,10 +74,39 @@ body {
   margin: 0 auto;
 }
 
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo-wrap {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.brand-text {
+  min-width: 0;
+}
+
 .brand-title {
   margin: 0;
   font-size: 1.45rem;
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .brand-subtitle {
@@ -87,20 +133,24 @@ body {
 
 .hero-card,
 .card {
-  background:
-    radial-gradient(circle at top right, rgba(255, 215, 90, 0.08), transparent 30%),
-    linear-gradient(135deg, rgba(15, 47, 87, 0.85), rgba(10, 34, 64, 0.92));
-    
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--card-border);
   border-radius: 20px;
   padding: 18px;
-  box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+  margin-bottom: 16px;
+}
+
+.card {
+  background: var(--card-bg);
 }
 
 .hero-card {
-  background:
-    radial-gradient(circle at top right, rgba(255, 215, 90, 0.10), transparent 28%),
-    linear-gradient(135deg, rgba(15, 47, 87, 0.95), rgba(10, 34, 64, 0.96));
+  background: var(--hero-bg);
+}
+
+.hero-card-logo {
+  position: relative;
+  overflow: hidden;
 }
 
 .hero-badge {
@@ -111,6 +161,22 @@ body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #f1e3b5;
+}
+
+.hero-brand-center {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 18px;
+}
+
+.hero-logo {
+  width: 124px;
+  height: 124px;
+  object-fit: cover;
+  border-radius: 28px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .hero-card h2,
@@ -141,7 +207,7 @@ body {
   padding: 6px 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   font-size: 0.82rem;
   font-weight: 700;
@@ -156,7 +222,9 @@ body {
 .today-grid,
 .summary-grid,
 .detail-stack,
-.settings-stack {
+.settings-stack,
+.quick-actions,
+.list-stack {
   display: grid;
   gap: 12px;
 }
@@ -168,11 +236,13 @@ body {
 
 .today-item,
 .summary-item,
-.detail-box {
-  background: var(--panel);
-  border: 1px solid var(--card-border);
+.detail-box,
+.list-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
   border-radius: 16px;
   padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .label {
@@ -212,11 +282,6 @@ body {
   margin-top: 12px;
 }
 
-.quick-actions {
-  display: grid;
-  gap: 12px;
-}
-
 button {
   border: none;
   cursor: pointer;
@@ -245,7 +310,7 @@ button:hover {
 
 .action-btn.secondary {
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .calendar-head {
@@ -276,7 +341,7 @@ button:hover {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 1.4rem;
 }
 
@@ -301,10 +366,10 @@ button:hover {
 
 .calendar-cell {
   position: relative;
-  min-height: 84px;
+  min-height: 96px;
   border-radius: 16px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.025));
   color: #fff;
   padding: 8px 6px;
   text-align: left;
@@ -318,29 +383,42 @@ button:hover {
 
 .calendar-cell.today {
   border-color: var(--gold);
-  box-shadow: 0 0 0 1px rgba(255, 215, 90, 0.20);
+  box-shadow:
+    0 0 0 1px rgba(255, 215, 90, 0.25),
+    0 0 18px rgba(255, 215, 90, 0.08);
 }
 
 .calendar-cell.selected {
-  outline: 2px solid rgba(99, 102, 241, 0.95);
+  outline: 2px solid rgba(96, 165, 250, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(96, 165, 250, 0.18),
+    0 0 16px rgba(59, 130, 246, 0.1);
 }
 
 .calendar-cell.month-start {
-  background: linear-gradient(
-    180deg,
-    rgba(16, 185, 129, 0.22) 0%,
-    rgba(16, 185, 129, 0.10) 100%
-  );
-  border-color: rgba(16, 185, 129, 0.70);
+  background:
+    linear-gradient(180deg, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.1) 100%);
+  border-color: rgba(16, 185, 129, 0.7);
 }
 
 .calendar-cell.next-month-start {
-  background: linear-gradient(
-    180deg,
-    rgba(168, 85, 247, 0.18) 0%,
-    rgba(168, 85, 247, 0.08) 100%
-  );
-  border-color: rgba(196, 181, 253, 0.70);
+  background:
+    linear-gradient(180deg, rgba(168, 85, 247, 0.18) 0%, rgba(168, 85, 247, 0.08) 100%);
+  border-color: rgba(196, 181, 253, 0.7);
+}
+
+.calendar-cell.shabat {
+  background:
+    linear-gradient(180deg, rgba(255, 215, 90, 0.1), rgba(255, 215, 90, 0.04)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.025));
+  border-color: rgba(255, 215, 90, 0.35);
+}
+
+.calendar-cell.has-feast {
+  background:
+    linear-gradient(180deg, rgba(16, 185, 129, 0.11), rgba(16, 185, 129, 0.04)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.025));
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 .calendar-day-number {
@@ -369,6 +447,10 @@ button:hover {
   align-items: center;
   justify-content: center;
   min-height: 20px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 2px 6px;
   border-radius: 999px;
   font-size: 0.64rem;
@@ -389,13 +471,26 @@ button:hover {
 }
 
 .chip-today {
-  background: rgba(59, 130, 246, 0.16);
-  border-color: rgba(96, 165, 250, 0.45);
+  background: var(--blue-soft);
+  border-color: var(--blue-border);
   color: #dbeafe;
+}
+
+.chip-shabat {
+  background: var(--gold-soft);
+  border-color: var(--gold-border);
+  color: #fde68a;
+}
+
+.chip-feast {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.72);
+  color: #bbf7d0;
 }
 
 .legend {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 14px;
 }
@@ -416,7 +511,7 @@ button:hover {
 }
 
 .today-dot {
-  background: rgba(255, 215, 90, 0.9);
+  background: var(--gold);
 }
 
 .selected-dot {
@@ -424,23 +519,11 @@ button:hover {
 }
 
 .month-start-dot {
-  background: rgba(16, 185, 129, 0.95);
+  background: var(--green);
 }
 
 .next-month-dot {
-  background: rgba(168, 85, 247, 0.95);
-}
-
-.list-stack {
-  display: grid;
-  gap: 12px;
-}
-
-.list-card {
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 14px;
+  background: var(--violet);
 }
 
 .list-card-title {
@@ -456,6 +539,10 @@ button:hover {
 
 .empty-state {
   color: var(--muted);
+}
+
+.selected-feasts-wrap {
+  margin-top: 8px;
 }
 
 .bottom-nav {
@@ -495,13 +582,33 @@ button:hover {
     padding: 14px 12px 104px;
   }
 
+  .brand-logo-wrap {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+
+  .hero-logo {
+    width: 108px;
+    height: 108px;
+    border-radius: 24px;
+  }
+
+  .brand-title {
+    font-size: 1.28rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.88rem;
+  }
+
   .today-grid,
   .summary-grid {
     grid-template-columns: 1fr;
   }
 
   .calendar-cell {
-    min-height: 78px;
+    min-height: 88px;
     padding: 8px 5px;
   }
 
@@ -509,108 +616,11 @@ button:hover {
     font-size: 0.61rem;
   }
 
-  .nav-btn {
-    font-size: 0.72rem;
-  }
-}
-
-.chip-shabat {
-  background: rgba(255, 215, 90, 0.18);
-  border-color: rgba(255, 215, 90, 0.7);
-  color: #fde68a;
-}
-
-.chip-feast {
-  background: rgba(16, 185, 129, 0.18);
-  border-color: rgba(16, 185, 129, 0.7);
-  color: #bbf7d0;
-}
-
-.card {
-  background:
-    radial-gradient(circle at top right, rgba(255, 215, 90, 0.08), transparent 30%),
-    linear-gradient(135deg, rgba(15, 47, 87, 0.88), rgba(10, 34, 64, 0.94));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
-}
-
-.today-item,
-.summary-item,
-.detail-box,
-.list-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-}
-
-.calendar-cell {
-  min-height: 96px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
-}
-
-.calendar-cell.today {
-  border-color: rgba(255, 215, 90, 0.92);
-  box-shadow:
-    0 0 0 1px rgba(255, 215, 90, 0.25),
-    0 0 18px rgba(255, 215, 90, 0.08);
-}
-
-.calendar-cell.selected {
-  outline: 2px solid rgba(96, 165, 250, 0.95);
-  box-shadow:
-    0 0 0 1px rgba(96, 165, 250, 0.18),
-    0 0 16px rgba(59, 130, 246, 0.10);
-}
-
-.calendar-cell.shabat {
-  background:
-    linear-gradient(180deg, rgba(255, 215, 90, 0.10), rgba(255, 215, 90, 0.04)),
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
-  border-color: rgba(255, 215, 90, 0.35);
-}
-
-.calendar-cell.has-feast {
-  background:
-    linear-gradient(180deg, rgba(16, 185, 129, 0.11), rgba(16, 185, 129, 0.04)),
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
-  border-color: rgba(16, 185, 129, 0.35);
-}
-
-.calendar-chip {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chip-shabat {
-  background: rgba(255, 215, 90, 0.18);
-  border-color: rgba(255, 215, 90, 0.72);
-  color: #fde68a;
-}
-
-.chip-feast {
-  background: rgba(16, 185, 129, 0.18);
-  border-color: rgba(16, 185, 129, 0.72);
-  color: #bbf7d0;
-}
-
-.selected-feasts-wrap {
-  margin-top: 8px;
-}
-
-.legend {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (max-width: 640px) {
-  .calendar-cell {
-    min-height: 88px;
-  }
-
   .legend {
     grid-template-columns: 1fr;
+  }
+
+  .nav-btn {
+    font-size: 0.72rem;
   }
 }
