@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Or HaLevanah</string>
-    <string name="title_activity_main">or-halevanah-mobile</string>
+    <string name="title_activity_main">Or HaLevanah</string>
     <string name="package_name">com.moventanio.orhalevanah</string>
     <string name="custom_url_scheme">com.moventanio.orhalevanah</string>
 </resources>
