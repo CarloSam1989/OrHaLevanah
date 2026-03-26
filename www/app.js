@@ -69,12 +69,6 @@ function parseYmdToLocalDate(ymd) {
   return new Date(year, month - 1, day);
 }
 
-function addDays(date, days) {
-  const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  copy.setDate(copy.getDate() + days);
-  return copy;
-}
-
 function getBiblicalMonthName(monthNumber) {
   if (!monthNumber || monthNumber < 1 || monthNumber > 12) return null;
   return BIBLICAL_MONTHS[monthNumber - 1];
@@ -82,7 +76,6 @@ function getBiblicalMonthName(monthNumber) {
 
 function inferBiblicalMonthNumber(data) {
   if (!data) return null;
-
   if (data.biblical_month) return data.biblical_month;
 
   const civilDate = parseYmdToLocalDate(data.civil_date);
@@ -104,7 +97,6 @@ function inferBiblicalMonthNumber(data) {
 
 function inferBiblicalDay(data) {
   if (!data) return null;
-
   if (data.biblical_day) return data.biblical_day;
 
   const civilDate = parseYmdToLocalDate(data.civil_date);
@@ -233,37 +225,13 @@ function getAfterSunsetText(value) {
   return "-";
 }
 
-function fillMonthSummaryUI(monthData) {
-  const biblicalText = formatBiblicalDate(monthData);
+function buildCompactDayNote(data) {
+  const biblicalText = formatBiblicalDate(data);
+  const afterSunsetText = getAfterSunsetText(data?.after_sunset);
+  const monthStart = safeText(data?.month_start, "-");
+  const nextMonthStart = safeText(data?.next_month_start, "-");
 
-  const bindings = {
-    inicioBiblicalDayNumber: biblicalText,
-    inicioMonthStart: monthData?.month_start,
-    inicioNextMonthStart: monthData?.next_month_start,
-    inicioAfterSunset: getAfterSunsetText(monthData?.after_sunset),
-    hoyBiblicalDayNumber: biblicalText,
-    hoyMonthStart: monthData?.month_start,
-    hoyNextMonthStart: monthData?.next_month_start,
-    hoyAfterSunset: getAfterSunsetText(monthData?.after_sunset)
-  };
-
-  Object.entries(bindings).forEach(([id, value]) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = safeText(value, "-");
-  });
-
-  const monthStatus = document.getElementById("monthStatusBadge");
-  if (monthStatus) {
-    monthStatus.textContent = biblicalText !== "-" ? biblicalText : "Calendario bíblico";
-    monthStatus.className = "pill";
-  }
-
-  const nextStatus = document.getElementById("nextMonthStatus");
-  if (nextStatus) {
-    nextStatus.textContent = monthData?.next_month_start
-      ? `Próxima cabeza de mes estimada: ${monthData.next_month_start}`
-      : "Próxima cabeza de mes no disponible";
-  }
+  return `Fecha bíblica: ${biblicalText}. Cabeza de mes: ${monthStart}. Próxima cabeza de mes: ${nextMonthStart}. Estado en Jerusalén: ${afterSunsetText}.`;
 }
 
 function fillTodayUI(todayData, monthData) {
@@ -285,12 +253,7 @@ function fillTodayUI(todayData, monthData) {
   if (inicioBiblicalDate) inicioBiblicalDate.textContent = formatBiblicalDate(merged);
   if (inicioJerusalemTime) inicioJerusalemTime.textContent = safeText(merged?.jerusalem_time, "No disponible");
   if (inicioSunset) inicioSunset.textContent = safeText(merged?.sunset_time, "No disponible");
-  if (inicioDayNote) {
-    inicioDayNote.textContent = safeText(
-      merged?.day_note,
-      "Información cargada correctamente."
-    );
-  }
+  if (inicioDayNote) inicioDayNote.textContent = buildCompactDayNote(merged);
 
   if (hoyCivilDate) hoyCivilDate.textContent = safeText(merged?.civil_date, "Sin fecha");
   if (hoyBiblicalDate) hoyBiblicalDate.textContent = formatBiblicalDate(merged);
@@ -299,11 +262,9 @@ function fillTodayUI(todayData, monthData) {
   if (hoyDayNote) {
     hoyDayNote.textContent = safeText(
       merged?.day_note,
-      "Sin nota disponible."
+      "El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer."
     );
   }
-
-  fillMonthSummaryUI(merged);
 }
 
 function fillSelectedExtraUI(data) {
@@ -464,7 +425,7 @@ function renderCalendar() {
       chips.push(buildCalendarChip("Shabat", "chip-shabat"));
     }
 
-    dayFeasts.slice(0, 2).forEach((feast) => {
+    dayFeasts.slice(0, 1).forEach((feast) => {
       chips.push(buildCalendarChip(feast.name, "chip-feast"));
     });
 
