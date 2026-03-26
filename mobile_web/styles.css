@@ -581,6 +581,32 @@ button:hover {
   background: rgba(59, 130, 246, 0.16);
   border-color: rgba(96, 165, 250, 0.45);
 }
+
+.gold-text {
+  color: #d4af37;
+  font-weight: 600;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(212, 175, 55, 0.3);
+  margin: 15px 0;
+}
+
+.text-muted {
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dedication-text {
+  color: #f5e6a3;
+  font-size: 15px;
+  line-height: 1.8;
+  text-align: center;
+  font-style: italic;
+}
+
 @media (max-width: 640px) {
   .brand-logo-wrap {
     width: 46px;

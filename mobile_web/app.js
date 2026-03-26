@@ -131,6 +131,79 @@ function formatBiblicalDate(data) {
   return "-";
 }
 
+function formatBiblicalShort(data) {
+  if (!data) return "-";
+
+  const day = inferBiblicalDay(data);
+  const monthNumber = inferBiblicalMonthNumber(data);
+  const monthName = data.month_name || getBiblicalMonthName(monthNumber);
+
+  if (day && monthName) {
+    const shortMonth = monthName === "Segundo mes"
+      ? "2° mes"
+      : monthName === "Tercer mes"
+      ? "3° mes"
+      : monthName === "Cuarto mes"
+      ? "4° mes"
+      : monthName === "Quinto mes"
+      ? "5° mes"
+      : monthName === "Sexto mes"
+      ? "6° mes"
+      : monthName === "Séptimo mes"
+      ? "7° mes"
+      : monthName === "Octavo mes"
+      ? "8° mes"
+      : monthName === "Noveno mes"
+      ? "9° mes"
+      : monthName === "Décimo mes"
+      ? "10° mes"
+      : monthName === "Undécimo mes"
+      ? "11° mes"
+      : monthName === "Duodécimo mes"
+      ? "12° mes"
+      : monthName;
+
+    return `${day} ${shortMonth}`;
+  }
+
+  if (day) return `${day}`;
+  return "-";
+}
+
+function buildBiblicalDataForDate(ymd) {
+  const civilDate = parseYmdToLocalDate(ymd);
+  const monthStart = parseYmdToLocalDate(state.monthPayload?.month_start);
+  const nextMonthStart = parseYmdToLocalDate(state.monthPayload?.next_month_start);
+
+  if (!civilDate || !monthStart) {
+    return {
+      civil_date: ymd,
+      biblical_day: null,
+      biblical_month: null
+    };
+  }
+
+  let biblicalMonth = 1;
+  let effectiveMonthStart = monthStart;
+
+  if (nextMonthStart && civilDate >= nextMonthStart) {
+    biblicalMonth = 2;
+    effectiveMonthStart = nextMonthStart;
+  }
+
+  const diffMs = civilDate.getTime() - effectiveMonthStart.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  const biblicalDay = diffDays >= 0 ? diffDays + 1 : null;
+
+  return {
+    civil_date: ymd,
+    month_start: formatDateToYMD(effectiveMonthStart),
+    next_month_start: state.monthPayload?.next_month_start || null,
+    biblical_day: biblicalDay,
+    biblical_month: biblicalMonth
+  };
+}
+
 function formatFeastDate(item) {
   if (!item) return "-";
   return item.gregorian_date || item.gregorian_start_date || "-";
@@ -377,6 +450,8 @@ function renderCalendar() {
   for (let day = 1; day <= lastDate; day++) {
     const dateObj = new Date(year, month, day);
     const ymd = formatDateToYMD(dateObj);
+    const biblicalData = buildBiblicalDataForDate(ymd);
+    const biblicalShort = formatBiblicalShort(biblicalData);
 
     const cell = document.createElement("button");
     cell.type = "button";
@@ -431,7 +506,7 @@ function renderCalendar() {
 
     cell.innerHTML = `
       <span class="calendar-day-number">${day}</span>
-      <span class="calendar-day-label">${ymd}</span>
+      <span class="calendar-day-label">${biblicalShort}</span>
       <span class="calendar-chip-stack">${chips.join("")}</span>
     `;
 
