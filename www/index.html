@@ -18,14 +18,13 @@
     </header>
 
     <main class="main-content">
-      <!-- INICIO -->
       <section id="view-inicio" class="view active">
         <div class="hero-card">
           <div class="hero-badge">Portal Bíblico</div>
           <h2>Bienvenido</h2>
           <p>
-            Consulta la fecha bíblica, el calendario mensual, las fiestas de Levítico 23
-            y la referencia del tiempo en Jerusalén.
+            Consulta la fecha bíblica, la cabeza de mes estimada en Jerusalén,
+            el calendario mensual y las fiestas de Levítico 23.
           </p>
         </div>
 
@@ -57,8 +56,38 @@
             </div>
           </div>
 
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="label">Día bíblico actual</span>
+              <strong id="inicioBiblicalDayNumber">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Cabeza de mes</span>
+              <strong id="inicioMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Próxima cabeza de mes</span>
+              <strong id="inicioNextMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Estado en Jerusalén</span>
+              <strong id="inicioAfterSunset">-</strong>
+            </div>
+          </div>
+
+          <div class="status-row">
+            <span class="pill" id="monthStatusBadge">Cargando...</span>
+          </div>
+
           <div class="note-box" id="inicioDayNote">
             Preparando información...
+          </div>
+
+          <div class="subnote" id="nextMonthStatus">
+            Consultando próxima cabeza de mes...
           </div>
         </div>
 
@@ -68,7 +97,6 @@
         </div>
       </section>
 
-      <!-- HOY -->
       <section id="view-hoy" class="view">
         <div class="card">
           <div class="card-title-row">
@@ -98,6 +126,28 @@
             </div>
           </div>
 
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="label">Día bíblico actual</span>
+              <strong id="hoyBiblicalDayNumber">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Cabeza de mes</span>
+              <strong id="hoyMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Próxima cabeza de mes</span>
+              <strong id="hoyNextMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Después del atardecer</span>
+              <strong id="hoyAfterSunset">-</strong>
+            </div>
+          </div>
+
           <div class="note-box" id="hoyDayNote">
             Cargando nota del día...
           </div>
@@ -122,7 +172,6 @@
         </div>
       </section>
 
-      <!-- CALENDARIO -->
       <section id="view-calendario" class="view">
         <div class="card">
           <div class="calendar-head">
@@ -151,6 +200,8 @@
           <div class="legend">
             <div class="legend-item"><span class="legend-dot today-dot"></span> Hoy</div>
             <div class="legend-item"><span class="legend-dot selected-dot"></span> Seleccionado</div>
+            <div class="legend-item"><span class="legend-dot month-start-dot"></span> Cabeza de mes</div>
+            <div class="legend-item"><span class="legend-dot next-month-dot"></span> Próxima cabeza de mes</div>
           </div>
         </div>
 
@@ -181,13 +232,34 @@
             </div>
           </div>
 
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="label">Día bíblico actual</span>
+              <strong id="selectedBiblicalDayNumber">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Cabeza de mes</span>
+              <strong id="selectedMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Próxima cabeza de mes</span>
+              <strong id="selectedNextMonthStart">-</strong>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">Después del atardecer</span>
+              <strong id="selectedAfterSunset">-</strong>
+            </div>
+          </div>
+
           <div class="note-box" id="selectedDayNote">
             Elige una fecha para ver el detalle.
           </div>
         </div>
       </section>
 
-      <!-- FIESTAS -->
       <section id="view-fiestas" class="view">
         <div class="card">
           <div class="card-title-row">
@@ -211,7 +283,6 @@
         </div>
       </section>
 
-      <!-- AJUSTES -->
       <section id="view-ajustes" class="view">
         <div class="card">
           <div class="card-title-row">
@@ -224,7 +295,7 @@
           </div>
 
           <div class="note-box">
-            Esta app móvil consume la API en Railway y presenta la información del portal web en formato móvil.
+            Esta app móvil consume la API en Railway y presenta la información principal del portal web en formato móvil.
           </div>
         </div>
       </section>

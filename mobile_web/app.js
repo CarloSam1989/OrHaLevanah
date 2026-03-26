@@ -15,6 +15,7 @@ const state = {
   selectedDatePayload: null
 };
 
+
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
   const text = await response.text();
@@ -28,6 +29,10 @@ async function fetchJson(url) {
   } catch {
     throw new Error(`Respuesta no JSON: ${text}`);
   }
+}
+
+function isShabat(dateObj) {
+  return dateObj.getDay() === 6; // sábado
 }
 
 function safeText(value, fallback = "-") {
@@ -68,16 +73,16 @@ function formatDateLongEs(ymd) {
 function formatBiblicalDate(data) {
   if (!data) return "-";
 
-  if (data.biblical_day && data.month_name) {
-    return `${data.biblical_day} de ${data.month_name}`;
-  }
+  const monthNames = [
+    "Aviv", "Segundo mes", "Tercer mes", "Cuarto mes",
+    "Quinto mes", "Sexto mes", "Séptimo mes",
+    "Octavo mes", "Noveno mes", "Décimo mes",
+    "Undécimo mes", "Duodécimo mes"
+  ];
 
-  if (data.biblical_month && data.biblical_day) {
-    return `Mes ${data.biblical_month}, día ${data.biblical_day}`;
-  }
-
-  if (data.biblical_date) {
-    return data.biblical_date;
+  if (data.biblical_day && data.biblical_month) {
+    const name = monthNames[data.biblical_month - 1] || `Mes ${data.biblical_month}`;
+    return `${data.biblical_day} de ${name}`;
   }
 
   return "-";
@@ -162,23 +167,7 @@ async function getFeastsJerusalem() {
 }
 
 async function getBiblicalByDate(date) {
-  const candidates = [
-    `${API_BASE}/api/biblical/jerusalem/date?date=${encodeURIComponent(date)}`,
-    `${API_BASE}/api/biblical/date?date=${encodeURIComponent(date)}`,
-    `${API_BASE}/api/biblical?date=${encodeURIComponent(date)}`
-  ];
-
-  let lastError = null;
-
-  for (const url of candidates) {
-    try {
-      return await fetchJson(url);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error("No se pudo consultar la fecha bíblica");
+  return fetchJson(`${API_BASE}/api/biblical/jerusalem/date?date=${date}`);
 }
 
 async function getFeastsByDate(date) {
@@ -463,6 +452,19 @@ function renderCalendar() {
     }
 
     const chips = [];
+
+    // 🟡 SHABAT
+    if (isShabat(dateObj)) {
+      chips.push(buildCalendarChip("Shabat", "chip-shabat"));
+    }
+
+    // 🟢 FIESTAS
+    const feastList = state.todayFeastsPayload?.upcoming_feasts || [];
+    const feastMatch = feastList.find(f => f.gregorian_date === ymd);
+
+    if (feastMatch) {
+      chips.push(buildCalendarChip(feastMatch.name, "chip-feast"));
+    }
     if (monthStartYmd && isSameYMD(ymd, monthStartYmd)) {
       chips.push(buildCalendarChip("Jodesh", "chip-jodesh"));
     }
