@@ -14,11 +14,213 @@ const calendarState = {
   jerusalemClockInterval: null,
 };
 
+const BIBLICAL_VERSE_LIBRARY = {
+  shabbat: [
+    {
+      reference: "Éxodo 20:8-11",
+      text: "Acuérdate del día de reposo para santificarlo...",
+      note: "Mandamiento del Shabat."
+    },
+    {
+      reference: "Isaías 58:13-14",
+      text: "Si retrajeres del día de reposo tu pie...",
+      note: "La bendición ligada al deleite en el día apartado."
+    }
+  ],
+  months: {
+    1: [
+      {
+        reference: "Éxodo 12:2",
+        text: "Este mes os será principio de los meses...",
+        note: "Aviv como comienzo del año bíblico."
+      }
+    ],
+    7: [
+      {
+        reference: "Levítico 23:24",
+        text: "En el mes séptimo, al primero del mes, tendréis día de reposo...",
+        note: "Mes de convocaciones solemnes."
+      }
+    ]
+  },
+  feasts: {
+    "Pesaj": [
+      {
+        reference: "Éxodo 12:5-14",
+        text: "Y tomarán de la sangre, y la pondrán en los dos postes...",
+        note: "Institución de Pesaj."
+      },
+      {
+        reference: "1 Corintios 5:7",
+        text: "Porque nuestra pascua, que es el Mesías, ya fue sacrificada por nosotros.",
+        note: "Relación mesiánica de Pesaj."
+      }
+    ],
+    "HaMatzot": [
+      {
+        reference: "Éxodo 12:15",
+        text: "Siete días comeréis panes sin levadura...",
+        note: "Mandato de los panes sin levadura."
+      }
+    ],
+    "Bikurim": [
+      {
+        reference: "Levítico 23:10-11",
+        text: "Traeréis al sacerdote una gavilla por primicia...",
+        note: "Primicias delante de YHWH."
+      }
+    ],
+    "Shavuot": [
+      {
+        reference: "Levítico 23:15-16",
+        text: "Y contaréis desde el día que sigue al día de reposo...",
+        note: "Conteo hacia Shavuot."
+      }
+    ],
+    "Yom Teruah": [
+      {
+        reference: "Levítico 23:24",
+        text: "Tendréis una conmemoración al son de trompetas...",
+        note: "Memorial de aclamación."
+      }
+    ],
+    "Yom Kippur": [
+      {
+        reference: "Levítico 23:27",
+        text: "A los diez días de este mes séptimo será el día de expiación...",
+        note: "Día de aflicción y expiación."
+      }
+    ],
+    "Sukkot": [
+      {
+        reference: "Levítico 23:34",
+        text: "A los quince días de este mes séptimo será la fiesta solemne de los tabernáculos...",
+        note: "Inicio de Sukkot."
+      }
+    ],
+    "Shemini Atzeret": [
+      {
+        reference: "Levítico 23:36",
+        text: "El octavo día tendréis santa convocación...",
+        note: "Octavo día de asamblea."
+      }
+    ]
+  }
+}; 
+
 function monthTitle(date) {
   return date.toLocaleDateString("es-EC", {
     month: "long",
     year: "numeric",
   });
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderVerseItems(items = []) {
+  if (!items.length) {
+    return `<div class="verse-empty">No hay versículos asociados para esta sección.</div>`;
+  }
+
+  return `
+    <div class="verse-list">
+      ${items.map(item => `
+        <article class="verse-item">
+          <span class="verse-ref">${escapeHtml(item.reference)}</span>
+          <p class="verse-text">${escapeHtml(item.text)}</p>
+          ${item.note ? `<div class="verse-note">${escapeHtml(item.note)}</div>` : ""}
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function buildBiblicalVersesHtml(data) {
+  const month = Number(data?.biblical_month || 0);
+  const currentFeasts = Array.isArray(data?.current_feasts) ? data.current_feasts : [];
+  const upcomingFeasts = Array.isArray(data?.upcoming_feasts) ? data.upcoming_feasts : [];
+  const isShabbat = Boolean(data?.is_shabbat);
+
+  const groups = [];
+
+  if (isShabbat) {
+    groups.push({
+      title: "Versículos para Shabat",
+      items: BIBLICAL_VERSE_LIBRARY.shabbat || []
+    });
+  }
+
+  if (BIBLICAL_VERSE_LIBRARY.months[month]) {
+    groups.push({
+      title: `Versículos del mes bíblico`,
+      items: BIBLICAL_VERSE_LIBRARY.months[month]
+    });
+  }
+
+  currentFeasts.forEach(feast => {
+    const feastName = feast?.name;
+    const items = BIBLICAL_VERSE_LIBRARY.feasts[feastName] || [];
+    if (items.length) {
+      groups.push({
+        title: `Versículos de ${feastName}`,
+        items
+      });
+    }
+  });
+
+  const nextFeast = upcomingFeasts.length ? upcomingFeasts[0] : null;
+  if (nextFeast && !currentFeasts.some(f => f?.name === nextFeast?.name)) {
+    const nextItems = BIBLICAL_VERSE_LIBRARY.feasts[nextFeast.name] || [];
+    if (nextItems.length) {
+      groups.push({
+        title: `Próxima fiesta: ${nextFeast.name}`,
+        items: nextItems.slice(0, 2)
+      });
+    }
+  }
+
+  if (!groups.length) {
+    groups.push({
+      title: "Lectura sugerida",
+      items: [
+        {
+          reference: "Salmo 119:105",
+          text: "Lámpara es a mis pies tu palabra, y lumbrera a mi camino.",
+          note: "Lectura base para cualquier día bíblico."
+        }
+      ]
+    });
+  }
+
+  return groups.map(group => `
+    <div class="verse-group">
+      <h3 class="verse-group-title">${escapeHtml(group.title)}</h3>
+      ${renderVerseItems(group.items)}
+    </div>
+  `).join("");
+}
+
+function renderBiblicalVersesSection(data) {
+  const container = document.getElementById("biblicalVersesContent");
+  const subtitle = document.getElementById("biblicalVersesSubtitle");
+
+  if (!container) return;
+
+  const biblicalDate = data?.biblical_date || "-";
+  const civilDate = data?.civil_date || "-";
+
+  if (subtitle) {
+    subtitle.textContent = `Fecha bíblica: ${biblicalDate} · Fecha civil: ${civilDate}`;
+  }
+
+  container.innerHTML = buildBiblicalVersesHtml(data);
 }
 
 function normalizeDateInput(dateStr) {
@@ -394,6 +596,23 @@ async function loadTodayBiblicalPanel() {
 
     panel.innerHTML = buildTodayBiblicalHtml(todayData, feastData, monthData);
     startJerusalemClock(monthData?.jerusalem_time || todayData?.jerusalem_time || "");
+
+    const shabbatState = getTodayShabbatState(
+      feastData?.civil_date || todayData?.civil_date || monthData?.civil_date,
+      monthData?.after_sunset ?? todayData?.after_sunset ?? false
+    );
+
+    const verseData = {
+      ...feastData,
+      biblical_date: feastData?.biblical_date || todayData?.biblical_date || "-",
+      civil_date: feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "-",
+      biblical_month: feastData?.biblical_month ?? todayData?.biblical_month ?? 0,
+      after_sunset: monthData?.after_sunset ?? todayData?.after_sunset ?? false,
+      is_shabbat: shabbatState.active
+    };
+
+    renderBiblicalVersesSection(verseData);
+
   } catch (error) {
     console.error("Error cargando el panel Hoy bíblico:", error);
     panel.innerHTML = `
