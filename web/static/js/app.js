@@ -189,7 +189,7 @@ function getRandomContextVerses(data) {
     return pickRandomItems(BIBLICAL_VERSE_LIBRARY.months[month], 1);
   }
 
-  return pickRandomItems(BIBLICAL_VERSE_LIBRARY.general || [], 1);
+   return pickRandomItems(BIBLICAL_VERSE_LIBRARY.general || [], 1);
 }
 
 function getOmerDayForDate(dateKey) {
@@ -230,11 +230,31 @@ function buildVerseContextForDate(dateKey) {
   const monthStartType = getMonthStartType(dateKey);
   const isMonthStart = monthStartType !== null;
 
+  let inferredBiblicalMonth = Number(todayData?.biblical_month || 0);
+  let inferredBiblicalDay = Number(todayData?.biblical_day || 0);
+
+  if (isMonthStart) {
+    if (monthStartType === "current") {
+      inferredBiblicalDay = 1;
+    } else if (monthStartType === "next") {
+      inferredBiblicalDay = 1;
+      inferredBiblicalMonth = inferredBiblicalMonth > 0 ? inferredBiblicalMonth + 1 : 0;
+    }
+  }
+
+  if (feasts.length > 0) {
+    inferredBiblicalMonth = Number(feasts[0]?.biblical_month || inferredBiblicalMonth || 0);
+    inferredBiblicalDay = Number(feasts[0]?.biblical_day || inferredBiblicalDay || 0);
+  }
+
   return {
     civil_date: dateKey,
-    biblical_date: dateKey,
-    biblical_month: Number(todayData?.biblical_month || monthInfo?.biblical_month || 0),
-    biblical_day: Number(todayData?.biblical_day || monthInfo?.biblical_day || 0),
+    biblical_date:
+      inferredBiblicalDay > 0 && inferredBiblicalMonth > 0
+        ? `${inferredBiblicalMonth}-${inferredBiblicalDay}`
+        : dateKey,
+    biblical_month: inferredBiblicalMonth,
+    biblical_day: inferredBiblicalDay,
     after_sunset: Boolean(monthInfo?.after_sunset),
     current_feasts: feasts,
     is_shabbat: isSaturday || (isFriday && Boolean(monthInfo?.after_sunset)),
@@ -338,7 +358,7 @@ function buildBiblicalVersesHtml(data) {
   }
   const randomVerses = getRandomContextVerses(data);
 
-  if (randomVerses.length) {
+  if (randomVerses.length && groups.length === 0) {
     groups.push({
       title: "Versículo relacionado del día",
       items: randomVerses
@@ -799,14 +819,25 @@ async function loadTodayBiblicalPanel() {
       monthData?.after_sunset ?? todayData?.after_sunset ?? false
     );
 
+    const currentCivilDate =
+      feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "";
+
     const verseData = {
       ...feastData,
-      civil_date: feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "",
+      civil_date: currentCivilDate,
       biblical_date: feastData?.biblical_date || todayData?.biblical_date || "",
       biblical_month: feastData?.biblical_month ?? todayData?.biblical_month ?? 0,
       biblical_day: feastData?.biblical_day ?? todayData?.biblical_day ?? 0,
       after_sunset: monthData?.after_sunset ?? todayData?.after_sunset ?? false,
-      is_shabbat: shabbatState.active
+      is_shabbat: shabbatState.active,
+      is_month_start: monthData?.month_start === currentCivilDate,
+      month_start_type:
+        monthData?.month_start === currentCivilDate
+          ? "current"
+          : monthData?.next_month_start === currentCivilDate
+            ? "next"
+            : null,
+      omer_day: feastData?.omer?.omer_day_today || null
     };
 
     renderBiblicalVersesSection(verseData);
