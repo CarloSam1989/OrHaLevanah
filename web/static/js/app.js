@@ -145,8 +145,11 @@ function renderVerseItems(items = []) {
 function buildBiblicalVersesHtml(data) {
   const month = Number(data?.biblical_month || 0);
   const currentFeasts = Array.isArray(data?.current_feasts) ? data.current_feasts : [];
-  const upcomingFeasts = Array.isArray(data?.upcoming_feasts) ? data.upcoming_feasts : [];
-  const isShabbat = Boolean(data?.is_shabbat);
+  const afterSunset = Boolean(data?.after_sunset);
+
+  const isShabbat =
+    Boolean(data?.is_shabbat) ||
+    getTodayShabbatState(data?.civil_date, afterSunset).active;
 
   const groups = [];
 
@@ -157,16 +160,17 @@ function buildBiblicalVersesHtml(data) {
     });
   }
 
-  if (BIBLICAL_VERSE_LIBRARY.months[month]) {
+  if (BIBLICAL_VERSE_LIBRARY.months[month]?.length) {
     groups.push({
-      title: `Versículos del mes bíblico`,
+      title: "Versículos del mes bíblico",
       items: BIBLICAL_VERSE_LIBRARY.months[month]
     });
   }
 
-  currentFeasts.forEach(feast => {
+  currentFeasts.forEach((feast) => {
     const feastName = feast?.name;
     const items = BIBLICAL_VERSE_LIBRARY.feasts[feastName] || [];
+
     if (items.length) {
       groups.push({
         title: `Versículos de ${feastName}`,
@@ -175,25 +179,19 @@ function buildBiblicalVersesHtml(data) {
     }
   });
 
-  const nextFeast = upcomingFeasts.length ? upcomingFeasts[0] : null;
-  if (nextFeast && !currentFeasts.some(f => f?.name === nextFeast?.name)) {
-    const nextItems = BIBLICAL_VERSE_LIBRARY.feasts[nextFeast.name] || [];
-    if (nextItems.length) {
-      groups.push({
-        title: `Próxima fiesta: ${nextFeast.name}`,
-        items: nextItems.slice(0, 2)
-      });
-    }
-  }
-
   if (!groups.length) {
     groups.push({
-      title: "Lectura sugerida",
+      title: "Lectura sugerida para hoy",
       items: [
         {
           reference: "Salmo 119:105",
           text: "Lámpara es a mis pies tu palabra, y lumbrera a mi camino.",
           note: "Lectura base para cualquier día bíblico."
+        },
+        {
+          reference: "Génesis 1:14",
+          text: "Haya lumbreras en la expansión de los cielos para separar el día de la noche; y sirvan de señales para las estaciones, para días y años.",
+          note: "Base del entendimiento bíblico de los tiempos señalados."
         }
       ]
     });
@@ -214,19 +212,22 @@ function renderBiblicalVersesSection(data) {
   if (!container) return;
 
   if (!data) {
-    container.innerHTML = `<div class="verse-empty">No hay datos disponibles.</div>`;
+    container.innerHTML = `
+      <div class="verse-empty">
+        No hay datos disponibles para mostrar versículos relacionados.
+      </div>
+    `;
     return;
   }
 
-  // 🔥 FALLBACKS (CLAVE)
   const safeData = {
-    biblical_month: data.biblical_month || 0,
-    biblical_day: data.biblical_day || 0,
-    civil_date: data.civil_date || "",
-    biblical_date: data.biblical_date || "",
-    after_sunset: data.after_sunset || false,
-    current_feasts: data.current_feasts || [],
-    is_shabbat: data.is_shabbat || false
+    biblical_month: Number(data?.biblical_month || 0),
+    biblical_day: Number(data?.biblical_day || 0),
+    civil_date: data?.civil_date || "",
+    biblical_date: data?.biblical_date || "",
+    after_sunset: Boolean(data?.after_sunset),
+    current_feasts: Array.isArray(data?.current_feasts) ? data.current_feasts : [],
+    is_shabbat: Boolean(data?.is_shabbat)
   };
 
   console.log("VERSOS DATA FINAL:", safeData);
@@ -240,7 +241,7 @@ function renderBiblicalVersesSection(data) {
   `;
 
   if (subtitle) {
-    subtitle.textContent = `Fecha bíblica: ${safeData.biblical_date || "-"}`;
+    subtitle.textContent = `Fecha bíblica: ${safeData.biblical_date || "-"} · Fecha civil: ${safeData.civil_date || "-"}`;
   }
 }
 
@@ -625,9 +626,10 @@ async function loadTodayBiblicalPanel() {
 
     const verseData = {
       ...feastData,
-      biblical_date: feastData?.biblical_date || todayData?.biblical_date || "-",
-      civil_date: feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "-",
+      civil_date: feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "",
+      biblical_date: feastData?.biblical_date || todayData?.biblical_date || "",
       biblical_month: feastData?.biblical_month ?? todayData?.biblical_month ?? 0,
+      biblical_day: feastData?.biblical_day ?? todayData?.biblical_day ?? 0,
       after_sunset: monthData?.after_sunset ?? todayData?.after_sunset ?? false,
       is_shabbat: shabbatState.active
     };
@@ -643,6 +645,16 @@ async function loadTodayBiblicalPanel() {
         <small>${error.message}</small>
       </div>
     `;
+
+    renderBiblicalVersesSection({
+      biblical_month: 0,
+      biblical_day: 0,
+      civil_date: "",
+      biblical_date: "",
+      after_sunset: false,
+      current_feasts: [],
+      is_shabbat: false
+    });
   }
 }
 
