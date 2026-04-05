@@ -607,6 +607,15 @@ function getFeastOrder(feastName) {
   return 99;
 }
 
+function shouldHideFeastBandLabel(feastName, spanDays) {
+  const shortAlwaysVisible = ["Bikurim", "Pesaj", "Matzot", "Shavuot", "Shabat"];
+
+  if (spanDays > 1) return false;
+  if (shortAlwaysVisible.includes(feastName)) return false;
+
+  return true;
+}
+
 function getBiblicalMonthStarts() {
   const starts = [];
 
@@ -1328,12 +1337,22 @@ function buildWeekFeastBands(weekDates, feastsMap) {
     const top = laneTopMap[order] || 64;
     const spanDays = maxCol - minCol + 1;
     const shortLabel = theme.short || feast.name || "Fiesta";
-    const hideLabelClass = spanDays <= 1 ? "is-label-hidden" : "";
+    const hideLabelClass = shouldHideFeastBandLabel(shortLabel, spanDays) ? "is-label-hidden" : "";
+
+    const bandWidth =
+      spanDays === 1
+        ? "calc((100% / 7) - 12px)"
+        : `calc(${spanDays} * (100% / 7) - 16px)`;
+
+    const bandLeft =
+      spanDays === 1
+        ? `calc(${minCol} * (100% / 7) + 6px)`
+        : `calc(${minCol} * (100% / 7) + 8px)`;
 
     return `
       <div
-        class="week-feast-band ${theme.cls} feast-hover-target ${hideLabelClass}"
-        style="left: calc(${minCol} * (100% / 7) + 8px); width: calc(${spanDays} * (100% / 7) - 16px); top: ${top}px;"
+        class="week-feast-band ${theme.cls} feast-hover-target ${hideLabelClass} ${spanDays === 1 ? "is-single-day-band" : ""}"
+        style="left: ${bandLeft}; width: ${bandWidth}; top: ${top}px;"
         data-feast="${serializeFeastForDataset(feast)}"
         data-feast-id="${feastId}"
         title="${feast.name}"
@@ -1390,6 +1409,14 @@ function renderCalendar(data) {
 
     const feasts = feastsMap.get(dateKey) || [];
     const omerDayForThisDate = getOmerDayForDate(dateKey);
+
+    const omerBand = omerDayForThisDate
+      ? `
+        <div class="omer-day-band" title="Omer día ${omerDayForThisDate}">
+          ${isMobile ? `Omer ${omerDayForThisDate}` : `Omer día ${omerDayForThisDate}`}
+        </div>
+      `
+      : "";
 
     const isToday = dateKey === todayKey;
     const isSelected = calendarState.selectedDate === dateKey;
@@ -1453,6 +1480,7 @@ const shabbatBridge = isFriday
           ${monthStartType === "next" ? "is-next-new-month-day" : ""}"
           data-date="${dateKey}" data-feast-ids="${feastIds}">
           ${shabbatBridge}
+          ${omerBand}
           <div class="calendar-day-number">
             <div>${day}</div>
             ${omerDayForThisDate ? `<div class="omer-label">${isMobile ? omerDayForThisDate : `Omer: ${omerDayForThisDate}`}</div>` : ""}
