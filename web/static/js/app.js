@@ -196,10 +196,13 @@ function getOmerDayForDate(dateKey) {
   const omer = calendarState.feastData?.omer;
   if (!omer?.bikkurim_date || !dateKey) return null;
 
-  const bikkurim = normalizeDateInput(omer.bikkurim_date);
+  const biblicalOmerStart = adjustToBiblicalStart(omer.bikkurim_date);
+  if (!biblicalOmerStart) return null;
+
+  const start = normalizeDateInput(biblicalOmerStart);
   const current = normalizeDateInput(dateKey);
 
-  const diffMs = current.getTime() - bikkurim.getTime();
+  const diffMs = current.getTime() - start.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays >= 0 && diffDays < 49) {
@@ -542,6 +545,11 @@ function addDays(dateObj, days) {
   const d = new Date(dateObj);
   d.setDate(d.getDate() + days);
   return d;
+}
+
+function adjustToBiblicalStart(dateStr) {
+  if (!dateStr) return null;
+  return formatDateKey(addDays(normalizeDateInput(dateStr), -1));
 }
 
 function getFeastIcon(feastName) {
@@ -940,13 +948,18 @@ function groupFeastsByVisibleDay(data) {
   ];
 
   for (const feast of all) {
-    const startStr = feast.gregorian_start_date || feast.gregorian_date;
-    const endStr = feast.gregorian_end_date || feast.gregorian_start_date || feast.gregorian_date;
+    const rawStartStr = feast.gregorian_start_date || feast.gregorian_date;
+    const rawEndStr = feast.gregorian_end_date || feast.gregorian_start_date || feast.gregorian_date;
 
-    if (!startStr) continue;
+    if (!rawStartStr) continue;
 
-    const start = normalizeDateInput(startStr);
-    const end = normalizeDateInput(endStr);
+    const shiftedStartStr = adjustToBiblicalStart(rawStartStr);
+    const shiftedEndStr = adjustToBiblicalStart(rawEndStr);
+
+    if (!shiftedStartStr || !shiftedEndStr) continue;
+
+    const start = normalizeDateInput(shiftedStartStr);
+    const end = normalizeDateInput(shiftedEndStr);
 
     let current = new Date(start);
     while (current <= end) {
@@ -954,7 +967,13 @@ function groupFeastsByVisibleDay(data) {
       if (!map.has(key)) {
         map.set(key, []);
       }
-      map.get(key).push(feast);
+
+      map.get(key).push({
+        ...feast,
+        display_start_date: shiftedStartStr,
+        display_end_date: shiftedEndStr
+      });
+
       current = addDays(current, 1);
     }
   }
@@ -965,8 +984,8 @@ function groupFeastsByVisibleDay(data) {
       const orderB = getFeastOrder(b.name);
       if (orderA !== orderB) return orderA - orderB;
 
-      const startA = a.gregorian_start_date || "";
-      const startB = b.gregorian_start_date || "";
+      const startA = a.display_start_date || a.gregorian_start_date || "";
+      const startB = b.display_start_date || b.gregorian_start_date || "";
       return startA.localeCompare(startB);
     });
     map.set(key, feasts);
@@ -987,10 +1006,14 @@ function ensureHoverCard() {
 }
 
 function buildHoverCardHtml(feast) {
+  const visualStart = feast.display_start_date || adjustToBiblicalStart(feast.gregorian_start_date || feast.gregorian_date) || feast.gregorian_start_date || feast.gregorian_date || "-";
+  const visualEnd = feast.display_end_date || adjustToBiblicalStart(feast.gregorian_end_date || feast.gregorian_start_date || feast.gregorian_date) || feast.gregorian_end_date || feast.gregorian_start_date || feast.gregorian_date || "-";
+
   return `
     <div class="hover-card-title">${getFeastIcon(feast.name)} ${feast.name}</div>
     <div class="hover-card-line"><strong>Fecha bíblica:</strong> mes ${feast.biblical_month}, día ${feast.biblical_day}</div>
-    <div class="hover-card-line"><strong>Fecha gregoriana:</strong> ${feast.gregorian_start_date} → ${feast.gregorian_end_date}</div>
+    <div class="hover-card-line"><strong>Visual en calendario:</strong> ${visualStart} → ${visualEnd}</div>
+    <div class="hover-card-line"><strong>Fecha gregoriana API:</strong> ${feast.gregorian_start_date} → ${feast.gregorian_end_date}</div>
     <div class="hover-card-line"><strong>Horario bíblico:</strong> ${feast.biblical_start_at} → ${feast.biblical_end_at}</div>
     <div class="hover-card-line"><strong>Día:</strong> ${feast.weekday}</div>
     ${feast.description ? `<div class="hover-card-desc">${feast.description}</div>` : ""}
@@ -1219,7 +1242,8 @@ function renderDayDetail(dateKey, feastsMap) {
       <div class="feast-item ${getFeastTheme(feast.name).cls}">
         <h4>${getFeastIcon(feast.name)} ${feast.name}</h4>
         <p><strong>Fecha bíblica:</strong> mes ${feast.biblical_month}, día ${feast.biblical_day}</p>
-        <p><strong>Fecha gregoriana:</strong> ${feast.gregorian_start_date} → ${feast.gregorian_end_date}</p>
+        <p><strong>Visual en calendario:</strong> ${feast.display_start_date || "-"} → ${feast.display_end_date || "-"}</p>
+        <p><strong>Fecha gregoriana API:</strong> ${feast.gregorian_start_date} → ${feast.gregorian_end_date}</p>
         <p><strong>Horario bíblico:</strong> ${feast.biblical_start_at} → ${feast.biblical_end_at}</p>
         <p><strong>Día:</strong> ${feast.weekday}</p>
         <p>${feast.description || ""}</p>
@@ -1365,20 +1389,7 @@ function renderCalendar(data) {
     const dateKey = formatDateKey(dateObj);
 
     const feasts = feastsMap.get(dateKey) || [];
-    const omerData = calendarState.feastData?.omer;
-    let omerDayForThisDate = null;
-
-    if (omerData?.bikkurim_date) {
-      const bikkurim = normalizeDateInput(omerData.bikkurim_date);
-      const current = normalizeDateInput(dateKey);
-
-      const diffMs = current.getTime() - bikkurim.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-      if (diffDays >= 0 && diffDays < 49) {
-        omerDayForThisDate = diffDays + 1;
-      }
-    }
+    const omerDayForThisDate = getOmerDayForDate(dateKey);
 
     const isToday = dateKey === todayKey;
     const isSelected = calendarState.selectedDate === dateKey;
