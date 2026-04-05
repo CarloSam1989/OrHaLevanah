@@ -33,6 +33,16 @@ const BIBLICAL_VERSE_LIBRARY = {
         reference: "Éxodo 12:2",
         text: "Este mes os será principio de los meses...",
         note: "Aviv como comienzo del año bíblico."
+      },
+      {
+        reference: "Éxodo 13:4",
+        text: "Vosotros salís hoy en el mes de Abib.",
+        note: "Identificación del primer mes."
+      },
+      {
+        reference: "Deuteronomio 16:1",
+        text: "Guardarás el mes de Abib, y harás pascua a YHWH tu Elohim.",
+        note: "Relación entre Aviv y Pesaj."
       }
     ],
     7: [
@@ -112,6 +122,16 @@ const BIBLICAL_VERSE_LIBRARY = {
         reference: "Levítico 23:15-16",
         text: "Y contaréis desde el día que sigue al día de reposo, desde el día en que ofrecisteis la gavilla de la ofrenda mecida; siete semanas cumplidas serán.",
         note: "Base bíblica del conteo del Omer."
+      },
+      {
+        reference: "Deuteronomio 16:9",
+        text: "Siete semanas contarás; desde que comenzare a meterse la hoz en las mieses comenzarás a contar las siete semanas.",
+        note: "Confirmación del conteo hacia Shavuot."
+      },
+      {
+        reference: "Salmo 90:12",
+        text: "Enséñanos de tal modo a contar nuestros días, que traigamos al corazón sabiduría.",
+        note: "Aplicación espiritual del conteo."
       }
     ],
     day1: [
@@ -119,6 +139,11 @@ const BIBLICAL_VERSE_LIBRARY = {
         reference: "Levítico 23:10-11",
         text: "Cuando hayáis entrado en la tierra que yo os doy, y seguéis su mies, traeréis al sacerdote una gavilla por primicia de los primeros frutos de vuestra siega.",
         note: "Inicio del conteo desde Bikurim."
+      },
+      {
+        reference: "Levítico 23:14",
+        text: "No comeréis pan, ni grano tostado, ni espiga fresca, hasta este mismo día, hasta que hayáis ofrecido la ofrenda de vuestro Elohim.",
+        note: "Relación entre primicias y consagración."
       }
     ]
   },
@@ -154,42 +179,17 @@ function pickRandomItems(items = [], count = 1) {
 }
 
 function getRandomContextVerses(data) {
-  const currentFeasts = Array.isArray(data?.current_feasts) ? data.current_feasts : [];
-  const omerDay = Number(data?.omer_day || 0);
-  const month = Number(data?.biblical_month || 0);
-  const afterSunset = Boolean(data?.after_sunset);
+  const pool = [...(BIBLICAL_VERSE_LIBRARY.general || [])];
 
-  const isShabbat =
-    Boolean(data?.is_shabbat) ||
-    getTodayShabbatState(data?.civil_date, afterSunset).active;
-
-  if (currentFeasts.length > 0) {
-    const feastName = currentFeasts[0]?.name;
-    const feastVerses = BIBLICAL_VERSE_LIBRARY.feasts[feastName] || [];
-    return pickRandomItems(feastVerses, 1);
+  if (Number(data?.omer_day || 0) > 0) {
+    pool.push(...(BIBLICAL_VERSE_LIBRARY.shabbat || []));
   }
 
-  if (omerDay > 0) {
-    const omerVerses =
-      omerDay === 1
-        ? (BIBLICAL_VERSE_LIBRARY.omer?.day1 || [])
-        : (BIBLICAL_VERSE_LIBRARY.omer?.general || []);
-    return pickRandomItems(omerVerses, 1);
+  if (Array.isArray(data?.current_feasts) && data.current_feasts.length > 0) {
+    pool.push(...(BIBLICAL_VERSE_LIBRARY.general || []));
   }
 
-  if (isShabbat) {
-    return pickRandomItems(BIBLICAL_VERSE_LIBRARY.shabbat || [], 1);
-  }
-
-  if (data?.is_month_start) {
-    return pickRandomItems(BIBLICAL_VERSE_LIBRARY.months[month] || [], 1);
-  }
-
-  if (BIBLICAL_VERSE_LIBRARY.months[month]?.length) {
-    return pickRandomItems(BIBLICAL_VERSE_LIBRARY.months[month], 1);
-  }
-
-   return pickRandomItems(BIBLICAL_VERSE_LIBRARY.general || [], 1);
+  return pickRandomItems(pool, 1);
 }
 
 function getOmerDayForDate(dateKey) {
@@ -231,7 +231,7 @@ function buildVerseContextForDate(dateKey) {
   const isMonthStart = monthStartType !== null;
 
   let inferredBiblicalMonth = Number(todayData?.biblical_month || 0);
-  let inferredBiblicalDay = Number(todayData?.biblical_day || 0);
+  let inferredBiblicalDay = 0;
 
   if (isMonthStart) {
     if (monthStartType === "current") {
@@ -247,12 +247,14 @@ function buildVerseContextForDate(dateKey) {
     inferredBiblicalDay = Number(feasts[0]?.biblical_day || inferredBiblicalDay || 0);
   }
 
+  const biblicalDateLabel =
+    inferredBiblicalMonth > 0 && inferredBiblicalDay > 0
+      ? `${inferredBiblicalDay} de ${getBiblicalMonthName(inferredBiblicalMonth)}`
+      : "Selección del calendario";
+
   return {
     civil_date: dateKey,
-    biblical_date:
-      inferredBiblicalDay > 0 && inferredBiblicalMonth > 0
-        ? `${inferredBiblicalMonth}-${inferredBiblicalDay}`
-        : dateKey,
+    biblical_date: biblicalDateLabel,
     biblical_month: inferredBiblicalMonth,
     biblical_day: inferredBiblicalDay,
     after_sunset: Boolean(monthInfo?.after_sunset),
@@ -358,9 +360,9 @@ function buildBiblicalVersesHtml(data) {
   }
   const randomVerses = getRandomContextVerses(data);
 
-  if (randomVerses.length && groups.length === 0) {
+  if (randomVerses.length) {
     groups.push({
-      title: "Versículo relacionado del día",
+      title: "Cita adicional",
       items: randomVerses
     });
   }
