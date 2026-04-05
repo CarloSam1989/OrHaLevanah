@@ -121,8 +121,76 @@ const BIBLICAL_VERSE_LIBRARY = {
         note: "Inicio del conteo desde Bikurim."
       }
     ]
-  }
+  },
+  general: [
+    {
+      reference: "Salmo 119:105",
+      text: "Lámpara es a mis pies tu palabra, y lumbrera a mi camino.",
+      note: "Dirección diaria por medio de la Palabra."
+    },
+    {
+      reference: "Génesis 1:14",
+      text: "Haya lumbreras en la expansión de los cielos para separar el día de la noche; y sirvan de señales para las estaciones, para días y años.",
+      note: "Base bíblica de los tiempos señalados."
+    },
+    {
+      reference: "Eclesiastés 3:1",
+      text: "Todo tiene su tiempo, y todo lo que se quiere debajo del cielo tiene su hora.",
+      note: "El Eterno estableció tiempos para cada propósito."
+    },
+    {
+      reference: "Salmo 90:12",
+      text: "Enséñanos de tal modo a contar nuestros días, que traigamos al corazón sabiduría.",
+      note: "Sabiduría para vivir conforme al tiempo del Eterno."
+    }
+  ]
 }; 
+
+function pickRandomItems(items = [], count = 1) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const shuffled = [...items].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.max(1, count));
+}
+
+function getRandomContextVerses(data) {
+  const currentFeasts = Array.isArray(data?.current_feasts) ? data.current_feasts : [];
+  const omerDay = Number(data?.omer_day || 0);
+  const month = Number(data?.biblical_month || 0);
+  const afterSunset = Boolean(data?.after_sunset);
+
+  const isShabbat =
+    Boolean(data?.is_shabbat) ||
+    getTodayShabbatState(data?.civil_date, afterSunset).active;
+
+  if (currentFeasts.length > 0) {
+    const feastName = currentFeasts[0]?.name;
+    const feastVerses = BIBLICAL_VERSE_LIBRARY.feasts[feastName] || [];
+    return pickRandomItems(feastVerses, 1);
+  }
+
+  if (omerDay > 0) {
+    const omerVerses =
+      omerDay === 1
+        ? (BIBLICAL_VERSE_LIBRARY.omer?.day1 || [])
+        : (BIBLICAL_VERSE_LIBRARY.omer?.general || []);
+    return pickRandomItems(omerVerses, 1);
+  }
+
+  if (isShabbat) {
+    return pickRandomItems(BIBLICAL_VERSE_LIBRARY.shabbat || [], 1);
+  }
+
+  if (data?.is_month_start) {
+    return pickRandomItems(BIBLICAL_VERSE_LIBRARY.months[month] || [], 1);
+  }
+
+  if (BIBLICAL_VERSE_LIBRARY.months[month]?.length) {
+    return pickRandomItems(BIBLICAL_VERSE_LIBRARY.months[month], 1);
+  }
+
+  return pickRandomItems(BIBLICAL_VERSE_LIBRARY.general || [], 1);
+}
 
 function getOmerDayForDate(dateKey) {
   const omer = calendarState.feastData?.omer;
@@ -175,7 +243,6 @@ function buildVerseContextForDate(dateKey) {
     omer_day: omerDay
   };
 }
-
 
 function monthTitle(date) {
   return date.toLocaleDateString("es-EC", {
@@ -269,7 +336,14 @@ function buildBiblicalVersesHtml(data) {
       items: BIBLICAL_VERSE_LIBRARY.months[month]
     });
   }
+  const randomVerses = getRandomContextVerses(data);
 
+  if (randomVerses.length) {
+    groups.push({
+      title: "Versículo relacionado del día",
+      items: randomVerses
+    });
+  }
   if (!groups.length) {
     groups.push({
       title: "Lectura sugerida para hoy",
