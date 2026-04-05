@@ -105,8 +105,77 @@ const BIBLICAL_VERSE_LIBRARY = {
         note: "Octavo día de asamblea."
       }
     ]
+  },
+  omer: {
+    general: [
+      {
+        reference: "Levítico 23:15-16",
+        text: "Y contaréis desde el día que sigue al día de reposo, desde el día en que ofrecisteis la gavilla de la ofrenda mecida; siete semanas cumplidas serán.",
+        note: "Base bíblica del conteo del Omer."
+      }
+    ],
+    day1: [
+      {
+        reference: "Levítico 23:10-11",
+        text: "Cuando hayáis entrado en la tierra que yo os doy, y seguéis su mies, traeréis al sacerdote una gavilla por primicia de los primeros frutos de vuestra siega.",
+        note: "Inicio del conteo desde Bikurim."
+      }
+    ]
   }
 }; 
+
+function getOmerDayForDate(dateKey) {
+  const omer = calendarState.feastData?.omer;
+  if (!omer?.bikkurim_date || !dateKey) return null;
+
+  const bikkurim = normalizeDateInput(omer.bikkurim_date);
+  const current = normalizeDateInput(dateKey);
+
+  const diffMs = current.getTime() - bikkurim.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays >= 0 && diffDays < 49) {
+    return diffDays + 1;
+  }
+
+  return null;
+}
+
+function getFeastsForDate(dateKey) {
+  if (!calendarState.feastData || !dateKey) return [];
+
+  const feastsMap = groupFeastsByVisibleDay(calendarState.feastData);
+  return feastsMap.get(dateKey) || [];
+}
+
+function buildVerseContextForDate(dateKey) {
+  const monthInfo = calendarState.biblicalMonthInfo || {};
+  const todayData = calendarState.feastData || {};
+  const feasts = getFeastsForDate(dateKey);
+  const omerDay = getOmerDayForDate(dateKey);
+
+  const dateObj = normalizeDateInput(dateKey);
+  const dayOfWeek = dateObj.getDay();
+  const isFriday = dayOfWeek === 5;
+  const isSaturday = dayOfWeek === 6;
+
+  const monthStartType = getMonthStartType(dateKey);
+  const isMonthStart = monthStartType !== null;
+
+  return {
+    civil_date: dateKey,
+    biblical_date: dateKey,
+    biblical_month: Number(todayData?.biblical_month || monthInfo?.biblical_month || 0),
+    biblical_day: Number(todayData?.biblical_day || monthInfo?.biblical_day || 0),
+    after_sunset: Boolean(monthInfo?.after_sunset),
+    current_feasts: feasts,
+    is_shabbat: isSaturday || (isFriday && Boolean(monthInfo?.after_sunset)),
+    is_month_start: isMonthStart,
+    month_start_type: monthStartType,
+    omer_day: omerDay
+  };
+}
+
 
 function monthTitle(date) {
   return date.toLocaleDateString("es-EC", {
@@ -146,26 +215,13 @@ function buildBiblicalVersesHtml(data) {
   const month = Number(data?.biblical_month || 0);
   const currentFeasts = Array.isArray(data?.current_feasts) ? data.current_feasts : [];
   const afterSunset = Boolean(data?.after_sunset);
+  const omerDay = Number(data?.omer_day || 0);
 
   const isShabbat =
     Boolean(data?.is_shabbat) ||
     getTodayShabbatState(data?.civil_date, afterSunset).active;
 
   const groups = [];
-
-  if (isShabbat) {
-    groups.push({
-      title: "Versículos para Shabat",
-      items: BIBLICAL_VERSE_LIBRARY.shabbat || []
-    });
-  }
-
-  if (BIBLICAL_VERSE_LIBRARY.months[month]?.length) {
-    groups.push({
-      title: "Versículos del mes bíblico",
-      items: BIBLICAL_VERSE_LIBRARY.months[month]
-    });
-  }
 
   currentFeasts.forEach((feast) => {
     const feastName = feast?.name;
@@ -178,6 +234,41 @@ function buildBiblicalVersesHtml(data) {
       });
     }
   });
+
+  if (omerDay > 0) {
+    const omerItems =
+      omerDay === 1
+        ? (BIBLICAL_VERSE_LIBRARY.omer?.day1 || BIBLICAL_VERSE_LIBRARY.omer?.general || [])
+        : (BIBLICAL_VERSE_LIBRARY.omer?.general || []);
+
+    if (omerItems.length) {
+      groups.push({
+        title: omerDay === 1 ? "Versículos del día 1 del Omer" : `Versículos del Omer · día ${omerDay}`,
+        items: omerItems
+      });
+    }
+  }
+
+  if (isShabbat) {
+    groups.push({
+      title: "Versículos para Shabat",
+      items: BIBLICAL_VERSE_LIBRARY.shabbat || []
+    });
+  }
+
+  if (data?.is_month_start && BIBLICAL_VERSE_LIBRARY.months[month]?.length) {
+    groups.push({
+      title: "Versículos del inicio del mes bíblico",
+      items: BIBLICAL_VERSE_LIBRARY.months[month]
+    });
+  }
+
+  if (!groups.length && BIBLICAL_VERSE_LIBRARY.months[month]?.length) {
+    groups.push({
+      title: "Versículos del mes bíblico",
+      items: BIBLICAL_VERSE_LIBRARY.months[month]
+    });
+  }
 
   if (!groups.length) {
     groups.push({
@@ -227,10 +318,11 @@ function renderBiblicalVersesSection(data) {
     biblical_date: data?.biblical_date || "",
     after_sunset: Boolean(data?.after_sunset),
     current_feasts: Array.isArray(data?.current_feasts) ? data.current_feasts : [],
-    is_shabbat: Boolean(data?.is_shabbat)
+    is_shabbat: Boolean(data?.is_shabbat),
+    is_month_start: Boolean(data?.is_month_start),
+    month_start_type: data?.month_start_type || null,
+    omer_day: Number(data?.omer_day || 0)
   };
-
-  console.log("VERSOS DATA FINAL:", safeData);
 
   const html = buildBiblicalVersesHtml(safeData);
 
@@ -241,7 +333,16 @@ function renderBiblicalVersesSection(data) {
   `;
 
   if (subtitle) {
-    subtitle.textContent = `Fecha bíblica: ${safeData.biblical_date || "-"} · Fecha civil: ${safeData.civil_date || "-"}`;
+    const parts = [
+      `Fecha bíblica: ${safeData.biblical_date || "-"}`,
+      `Fecha civil: ${safeData.civil_date || "-"}`
+    ];
+
+    if (safeData.omer_day > 0) {
+      parts.push(`Omer: día ${safeData.omer_day}`);
+    }
+
+    subtitle.textContent = parts.join(" · ");
   }
 }
 
@@ -1290,6 +1391,9 @@ const shabbatBridge = isFriday
       calendarState.selectedDate = cell.dataset.date;
       renderCalendar(data);
       renderDayDetail(calendarState.selectedDate, feastsMap);
+
+      const selectedVerseData = buildVerseContextForDate(calendarState.selectedDate);
+      renderBiblicalVersesSection(selectedVerseData);
     });
   });
 
@@ -1353,7 +1457,7 @@ async function loadFeasts() {
 
     const civilDate = feastPayload?.data?.civil_date;
     calendarState.currentDate = civilDate ? normalizeDateInput(civilDate) : new Date();
-    calendarState.selectedDate = null;
+    calendarState.selectedDate = civilDate || null;
 
     renderFeastsData(feastPayload);
   } catch (error) {
@@ -1428,9 +1532,15 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnTodayMonth) {
     btnTodayMonth.addEventListener("click", () => {
       if (!calendarState.feastData) return;
+
       calendarState.currentDate = normalizeDateInput(calendarState.feastData.civil_date);
       calendarState.selectedDate = calendarState.feastData.civil_date;
+
       renderCalendar(calendarState.feastData);
+      renderDayDetail(calendarState.selectedDate, groupFeastsByVisibleDay(calendarState.feastData));
+
+      const todayVerseData = buildVerseContextForDate(calendarState.feastData.civil_date);
+      renderBiblicalVersesSection(todayVerseData);
     });
   }
   loadTodayBiblicalPanel();
