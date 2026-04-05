@@ -1370,45 +1370,49 @@ function renderCalendar(data) {
   if (!grid || !title) return;
 
   const feastsMap = groupFeastsByVisibleDay(data);
-  const currentMonthDate = new Date(
-    calendarState.currentDate.getFullYear(),
-    calendarState.currentDate.getMonth(),
-    1
-  );
+  const isMobile = isMobileCalendarView();
 
-  title.textContent = `Calendario: ${monthTitle(currentMonthDate)}`;
-
-  const year = currentMonthDate.getFullYear();
-  const month = currentMonthDate.getMonth();
+  const year = calendarState.year;
+  const month = calendarState.month;
 
   const firstDay = new Date(year, month, 1);
-  const startWeekday = firstDay.getDay();
+  const startDay = firstDay.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-  const todayKey = data.civil_date;
+  const todayKey = formatDateKey(new Date());
+
+  title.textContent = firstDay.toLocaleString("es-ES", {
+    month: "long",
+    year: "numeric",
+  });
+
   const cells = [];
 
-  for (let i = 0; i < startWeekday; i++) {
-    const dayNum = daysInPrevMonth - startWeekday + i + 1;
+  // Días vacíos al inicio
+  for (let i = 0; i < startDay; i++) {
     cells.push({
-      type: "other",
-      number: dayNum,
-      dateKey: null,
-      html: `
-        <div class="calendar-day is-other-month">
-          <div class="calendar-day-number">${dayNum}</div>
-        </div>
-      `,
+      type: "empty",
+      html: `<div class="calendar-day empty"></div>`,
     });
   }
 
+  // Días del mes
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day);
     const dateKey = formatDateKey(dateObj);
 
     const feasts = feastsMap.get(dateKey) || [];
     const omerDayForThisDate = getOmerDayForDate(dateKey);
+
+    const isToday = dateKey === todayKey;
+    const isSelected = calendarState.selectedDate === dateKey;
+
+    const dayOfWeek = dateObj.getDay();
+    const isFriday = dayOfWeek === 5;
+    const isSaturday = dayOfWeek === 6;
+
+    const monthStartType = getMonthStartType(dateKey);
+    const isBiblicalNewMonth = monthStartType !== null;
 
     const omerBand = omerDayForThisDate
       ? `
@@ -1418,55 +1422,47 @@ function renderCalendar(data) {
       `
       : "";
 
-    const isToday = dateKey === todayKey;
-    const isSelected = calendarState.selectedDate === dateKey;
+    const feastMarkers = !isMobile
+      ? feasts
+          .slice(0, 2)
+          .sort((a, b) => getFeastOrder(a.name) - getFeastOrder(b.name))
+          .map((f) => {
+            const theme = getFeastTheme(f.name);
+            const feastId = getFeastStableId(f);
+            return `
+              <span
+                class="calendar-marker feast ${theme.cls} feast-hover-target"
+                data-feast="${serializeFeastForDataset(f)}"
+                data-feast-id="${feastId}"
+                title="${f.name}"
+              >
+                ${getFeastIcon(f.name)}
+              </span>
+            `;
+          })
+          .join("")
+      : buildMobileMarkers(feasts, isFriday, isSaturday, isBiblicalNewMonth);
 
-    const dayOfWeek = dateObj.getDay();
-    const isFriday = dayOfWeek === 5;
-    const isSaturday = dayOfWeek === 6;
-    const monthStartType = getMonthStartType(dateKey);
-    const isBiblicalNewMonth = monthStartType !== null;
+    const fridaySunsetMarker =
+      !isMobile && isFriday
+        ? `<span class="calendar-marker sunset-start" title="Desde este atardecer inicia el Shabat">🌇</span>`
+        : "";
 
-   const isMobile = isMobileCalendarView();
+    const shabbatMarker =
+      !isMobile && isSaturday
+        ? `<span class="calendar-marker shabbat" title="Shabat: viernes al atardecer → sábado al atardecer">🕯️</span>`
+        : "";
 
-const feastMarkers = !isMobile
-  ? feasts
-      .slice(0, 2)
-      .sort((a, b) => getFeastOrder(a.name) - getFeastOrder(b.name))
-      .map((f) => {
-        const theme = getFeastTheme(f.name);
-        const feastId = getFeastStableId(f);
-        return `
-          <span
-            class="calendar-marker feast ${theme.cls} feast-hover-target"
-            data-feast="${serializeFeastForDataset(f)}"
-            data-feast-id="${feastId}"
-            title="${f.name}"
-          >
-            ${getFeastIcon(f.name)}
-          </span>
-        `;
-      })
-      .join("")
-  : buildMobileMarkers(feasts, isFriday, isSaturday, isBiblicalNewMonth);
+    const newMonthMarker =
+      !isMobile && isBiblicalNewMonth
+        ? `<span class="calendar-marker new-month" title="Cabeza del mes bíblico">🌒</span>`
+        : "";
 
-const fridaySunsetMarker = !isMobile && isFriday
-  ? `<span class="calendar-marker sunset-start" title="Desde este atardecer inicia el Shabat">🌇</span>`
-  : "";
-
-const shabbatMarker = !isMobile && isSaturday
-  ? `<span class="calendar-marker shabbat" title="Shabat: viernes al atardecer → sábado al atardecer">🕯️</span>`
-  : "";
-
-const newMonthMarker = !isMobile && isBiblicalNewMonth
-  ? `<span class="calendar-marker new-month" title="Cabeza del mes bíblico">🌒</span>`
-  : "";
-
-const shabbatBridge = isFriday
-  ? `<div class="shabbat-bridge shabbat-span-2" title="Shabat">
-        <span class="shabbat-bridge-label">${isMobile ? "" : "Shabat"}</span>
-    </div>`
-  : "";
+    const shabbatBridge = isFriday
+      ? `<div class="shabbat-bridge shabbat-span-2" title="Shabat">
+            <span class="shabbat-bridge-label">${isMobile ? "" : "Shabat"}</span>
+         </div>`
+      : "";
 
     const feastIds = feasts.map((f) => getFeastStableId(f)).join("||");
 
@@ -1475,86 +1471,57 @@ const shabbatBridge = isFriday
       number: day,
       dateKey,
       html: `
-        <div class="calendar-day ${isToday ? "is-today" : ""} ${feasts.length ? "has-feast" : ""} ${isSelected ? "is-selected" : ""} ${isFriday ? "is-friday" : ""} ${isSaturday ? "is-shabbat-day" : ""} 
+        <div class="calendar-day 
+          ${isToday ? "is-today" : ""} 
+          ${feasts.length ? "has-feast" : ""} 
+          ${isSelected ? "is-selected" : ""} 
+          ${isFriday ? "is-friday" : ""} 
+          ${isSaturday ? "is-shabbat-day" : ""} 
           ${monthStartType === "current" ? "is-new-month-day" : ""}
           ${monthStartType === "next" ? "is-next-new-month-day" : ""}"
-          data-date="${dateKey}" data-feast-ids="${feastIds}">
+          data-date="${dateKey}" 
+          data-feast-ids="${feastIds}">
+
           ${shabbatBridge}
           ${omerBand}
+
           <div class="calendar-day-number">
             <div>${day}</div>
-            ${omerDayForThisDate ? `<div class="omer-label">${isMobile ? omerDayForThisDate : `Omer: ${omerDayForThisDate}`}</div>` : ""}
+            ${
+              omerDayForThisDate
+                ? `<div class="omer-label">${isMobile ? omerDayForThisDate : `Omer: ${omerDayForThisDate}`}</div>`
+                : ""
+            }
           </div>
+
           <div class="calendar-markers">
             ${feastMarkers}
             ${fridaySunsetMarker}
             ${shabbatMarker}
             ${newMonthMarker}
           </div>
+
           <div class="calendar-day-note"></div>
         </div>
       `,
     });
   }
 
-  while (cells.length % 7 !== 0) {
-    const number = (cells.length % 7) + 1;
-    cells.push({
-      type: "other",
-      number,
-      dateKey: null,
-      html: `
-        <div class="calendar-day is-other-month">
-          <div class="calendar-day-number">${number}</div>
-        </div>
-      `,
-    });
-  }
+  // Render final
+  grid.innerHTML = cells.map((c) => c.html).join("");
 
-  let html = "";
-
-  for (let i = 0; i < cells.length; i += 7) {
-    const weekCells = cells.slice(i, i + 7);
-    const weekDates = weekCells.map((cell) => cell.dateKey);
-    const weekBandsHtml = buildWeekFeastBands(weekDates, feastsMap);
-
-    html += `
-      <div class="calendar-week-row">
-        <div class="calendar-week-bands">
-          ${weekBandsHtml}
-        </div>
-        <div class="calendar-week-cells">
-          ${weekCells.map((cell) => cell.html).join("")}
-        </div>
-      </div>
-    `;
-  }
-
-  grid.innerHTML = html;
-
-  grid.querySelectorAll(".calendar-day[data-date]").forEach((cell) => {
-    cell.addEventListener("click", () => {
-      calendarState.selectedDate = cell.dataset.date;
+  // Click en día
+  grid.querySelectorAll(".calendar-day[data-date]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const dateKey = el.getAttribute("data-date");
+      calendarState.selectedDate = dateKey;
       renderCalendar(data);
-      renderDayDetail(calendarState.selectedDate, feastsMap);
-
-      const selectedVerseData = buildVerseContextForDate(calendarState.selectedDate);
-      renderBiblicalVersesSection(selectedVerseData);
+      renderDayDetail(dateKey, data);
     });
   });
 
-  bindFeastHoverCards();
-  bindShabbatHoverCard();
-
-  if (!calendarState.selectedDate && detail) {
-    detail.classList.add("is-hidden");
-    detail.classList.remove("is-visible");
-    detail.innerHTML = `
-      <div class="calendar-detail-placeholder">
-        Selecciona un día del calendario para ver su detalle bíblico.
-      </div>
-    `;
-  }
+  // Hover fiestas
+  attachFeastHoverEvents();
 }
 
 function renderFeastsData(payload) {
