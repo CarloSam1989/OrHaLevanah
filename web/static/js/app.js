@@ -213,14 +213,35 @@ function renderBiblicalVersesSection(data) {
 
   if (!container) return;
 
-  const biblicalDate = data?.biblical_date || "-";
-  const civilDate = data?.civil_date || "-";
-
-  if (subtitle) {
-    subtitle.textContent = `Fecha bíblica: ${biblicalDate} · Fecha civil: ${civilDate}`;
+  if (!data) {
+    container.innerHTML = `<div class="verse-empty">No hay datos disponibles.</div>`;
+    return;
   }
 
-  container.innerHTML = buildBiblicalVersesHtml(data);
+  // 🔥 FALLBACKS (CLAVE)
+  const safeData = {
+    biblical_month: data.biblical_month || 0,
+    biblical_day: data.biblical_day || 0,
+    civil_date: data.civil_date || "",
+    biblical_date: data.biblical_date || "",
+    after_sunset: data.after_sunset || false,
+    current_feasts: data.current_feasts || [],
+    is_shabbat: data.is_shabbat || false
+  };
+
+  console.log("VERSOS DATA FINAL:", safeData);
+
+  const html = buildBiblicalVersesHtml(safeData);
+
+  container.innerHTML = html || `
+    <div class="verse-empty">
+      No hay versículos definidos para este día.
+    </div>
+  `;
+
+  if (subtitle) {
+    subtitle.textContent = `Fecha bíblica: ${safeData.biblical_date || "-"}`;
+  }
 }
 
 function normalizeDateInput(dateStr) {
