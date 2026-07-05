@@ -9,6 +9,7 @@ func RegisterRoutes() {
 	http.HandleFunc("/api/biblical/jerusalem/today", BiblicalJerusalemTodayHandler)
 	http.HandleFunc("/api/biblical/jerusalem/date", BiblicalJerusalemByDateHandler)
 	http.HandleFunc("/api/biblical/jerusalem/month", BiblicalJerusalemMonthHandler)
+	http.HandleFunc("/api/biblical/jerusalem/calendar", BiblicalJerusalemCalendarHandler)
 	http.HandleFunc("/api/feasts/jerusalem", FeastsJerusalemHandler)
 
 	http.HandleFunc("/api/aviv/status", AvivStatusHandler)

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"or-halevanah/internal/aviv"
@@ -13,6 +14,61 @@ import (
 	"or-halevanah/internal/models"
 	"or-halevanah/internal/solar"
 )
+
+func BiblicalJerusalemCalendarHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	year, err := strconv.Atoi(r.URL.Query().Get("year"))
+	if err != nil || year < 1900 || year > 2200 {
+		http.Error(w, "Año inválido", http.StatusBadRequest)
+		return
+	}
+
+	monthNumber, err := strconv.Atoi(r.URL.Query().Get("month"))
+	if err != nil || monthNumber < 1 || monthNumber > 12 {
+		http.Error(w, "Mes inválido", http.StatusBadRequest)
+		return
+	}
+
+	jerusalem := location.GetJerusalem()
+	loc, err := time.LoadLocation(jerusalem.Timezone)
+	if err != nil {
+		http.Error(w, "No se pudo cargar la zona horaria de Jerusalén", http.StatusInternalServerError)
+		return
+	}
+
+	month := time.Month(monthNumber)
+	daysInMonth := time.Date(year, month+1, 0, 0, 0, 0, 0, loc).Day()
+	days := make([]models.BiblicalCalendarDay, 0, daysInMonth)
+
+	for day := 1; day <= daysInMonth; day++ {
+		// Cada casilla representa el día bíblico que comienza al atardecer
+		// de esta fecha civil; las 23:00 garantizan que ya pasó el atardecer.
+		civilDate := time.Date(year, month, day, 23, 0, 0, 0, loc)
+		monthStart := biblical.FindEstimatedMonthStart(civilDate)
+		biblicalDay := int(civilDate.Sub(monthStart).Hours()/24) + 1
+
+		if biblicalDay < 1 {
+			biblicalDay = 1
+		}
+		if biblicalDay > 30 {
+			biblicalDay = 30
+		}
+
+		days = append(days, models.BiblicalCalendarDay{
+			CivilDate:     civilDate.Format("2006-01-02"),
+			BiblicalDay:   biblicalDay,
+			BiblicalMonth: biblical.GetCurrentBiblicalMonthAt(civilDate),
+			MonthStart:    monthStart.Format("2006-01-02"),
+		})
+	}
+
+	json.NewEncoder(w).Encode(models.ApiResponse{
+		Success: true,
+		Message: "Calendario bíblico mensual calculado correctamente",
+		Data:    days,
+	})
+}
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -177,13 +233,18 @@ func FeastsJerusalemHandler(w http.ResponseWriter, r *http.Request) {
 	afterSunset := biblical.IsAfterSunset(nowJerusalem, sunset)
 	biblicalDate := biblical.GetBiblicalDate(nowJerusalem, sunset)
 
-	monthStart := biblical.FindEstimatedMonthStart(nowJerusalem)
-	biblicalDay := biblical.CalculateBiblicalDay(monthStart, nowJerusalem, afterSunset)
+	// Las fiestas anuales y el Omer se calculan una sola vez desde Aviv,
+	// no desde el inicio del mes lunar vigente.
+	yearStart := biblical.EstimateBiblicalYearStart(nowJerusalem)
 	biblicalMonth := biblical.GetCurrentBiblicalMonthAt(nowJerusalem)
 
-	currentFeasts := feasts.GetCurrentFeasts(monthStart, nowJerusalem)
-	upcomingFeasts := feasts.GetUpcomingFeasts(monthStart, nowJerusalem)
-	omerInfo := feasts.CalculateOmerInfo(monthStart, nowJerusalem)
+	currentMonthStart := biblical.FindEstimatedMonthStart(nowJerusalem)
+	biblicalDay := biblical.CalculateBiblicalDay(currentMonthStart, nowJerusalem, afterSunset)
+
+	currentFeasts := feasts.GetCurrentFeasts(yearStart, nowJerusalem)
+	upcomingFeasts := feasts.GetUpcomingFeasts(yearStart, nowJerusalem)
+	allFeasts := feasts.GetAllFeasts(yearStart)
+	omerInfo := feasts.CalculateOmerInfo(yearStart, nowJerusalem)
 
 	data := models.FeastsResponse{
 		CivilDate:      nowJerusalem.Format("2006-01-02"),
@@ -191,6 +252,7 @@ func FeastsJerusalemHandler(w http.ResponseWriter, r *http.Request) {
 		BiblicalMonth:  biblicalMonth,
 		BiblicalDay:    biblicalDay,
 		DayNote:        "Las fiestas y los días bíblicos comienzan al atardecer y continúan hasta el siguiente atardecer.",
+		AllFeasts:      allFeasts,
 		CurrentFeasts:  currentFeasts,
 		UpcomingFeasts: upcomingFeasts,
 		Omer:           omerInfo,
@@ -401,15 +463,15 @@ func BiblicalJerusalemByDateHandler(w http.ResponseWriter, r *http.Request) {
 	biblicalDay := biblical.CalculateBiblicalDay(monthStart, selectedDate, afterSunset)
 
 	data := map[string]interface{}{
-		"civil_date":        selectedDate.Format("2006-01-02"),
-		"biblical_date":     biblicalDate.Format("2006-01-02"),
-		"jerusalem_time":    selectedDate.Format("2006-01-02 15:04:05"),
-		"sunset_time":       sunset.Format("15:04"),
-		"after_sunset":      afterSunset,
-		"day_note":          "El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.",
-		"month_start":       monthStart.Format("2006-01-02"),
-		"next_month_start":  nextMonthStart.Format("2006-01-02"),
-		"biblical_day":      biblicalDay,
+		"civil_date":       selectedDate.Format("2006-01-02"),
+		"biblical_date":    biblicalDate.Format("2006-01-02"),
+		"jerusalem_time":   selectedDate.Format("2006-01-02 15:04:05"),
+		"sunset_time":      sunset.Format("15:04"),
+		"after_sunset":     afterSunset,
+		"day_note":         "El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.",
+		"month_start":      monthStart.Format("2006-01-02"),
+		"next_month_start": nextMonthStart.Format("2006-01-02"),
+		"biblical_day":     biblicalDay,
 	}
 
 	response := models.ApiResponse{

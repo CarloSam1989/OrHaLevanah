@@ -447,9 +447,14 @@ input::placeholder {
 }
 
 .calendar-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 12px;
+}
+
+.calendar-day.empty {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .calendar-week-row {
@@ -513,6 +518,26 @@ input::placeholder {
 .calendar-day.has-feast {
   background: var(--blue-soft);
   border-color: var(--blue-border);
+}
+
+.calendar-day.has-sukkot {
+  background: linear-gradient(145deg, rgba(22, 163, 74, 0.3), rgba(202, 138, 4, 0.2));
+  border-color: rgba(250, 204, 21, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.16);
+}
+
+.sukkot-day-label {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 6;
+  padding: 3px 7px;
+  border: 1px solid rgba(250, 204, 21, 0.55);
+  border-radius: 999px;
+  background: rgba(20, 83, 45, 0.82);
+  color: #fef3c7;
+  font-size: 0.68rem;
+  font-weight: 800;
 }
 
 .calendar-day.is-new-month-day {
@@ -1501,4 +1526,13 @@ input::placeholder {
     left: 8px;
     right: 8px;
   }
+}
+
+.biblical-day-label {
+  margin-top: 4px;
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: normal;
 }

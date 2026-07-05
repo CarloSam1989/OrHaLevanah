@@ -40,6 +40,24 @@ func buildFixedFeast(name string, biblicalMonth, biblicalDay int, monthStart tim
 	}
 }
 
+func buildRangedFeast(name string, biblicalMonth, startDay, endDay int, monthStart time.Time, description string) models.Feast {
+	startAt, _ := buildBiblicalWindow(monthStart.AddDate(0, 0, startDay-1))
+	_, endAt := buildBiblicalWindow(monthStart.AddDate(0, 0, endDay-1))
+
+	return models.Feast{
+		Name:               name,
+		BiblicalMonth:      biblicalMonth,
+		BiblicalDay:        startDay,
+		GregorianDate:      startAt.Format("2006-01-02"),
+		Weekday:            startAt.Weekday().String(),
+		BiblicalStartAt:    startAt.Format("2006-01-02 15:04"),
+		BiblicalEndAt:      endAt.Format("2006-01-02 15:04"),
+		GregorianStartDate: startAt.Format("2006-01-02"),
+		GregorianEndDate:   endAt.Format("2006-01-02"),
+		Description:        description,
+	}
+}
+
 func GetMonthOneFixedFeasts(monthStart time.Time) []models.Feast {
 	return []models.Feast{
 		buildFixedFeast(
@@ -82,19 +100,13 @@ func GetSeventhMonthFixedFeasts(monthSevenStart time.Time) []models.Feast {
 			monthSevenStart,
 			"Día de expiación. El día bíblico comienza al atardecer.",
 		),
-		buildFixedFeast(
-			"Sucot - Inicio",
+		buildRangedFeast(
+			"Sucot",
 			7,
 			15,
-			monthSevenStart,
-			"Inicio de Sucot. El día bíblico comienza al atardecer.",
-		),
-		buildFixedFeast(
-			"Sucot - Fin",
-			7,
 			21,
 			monthSevenStart,
-			"Fin de Sucot. El día bíblico comienza al atardecer.",
+			"Siete días de Sucot, desde el día 15 hasta el día 21 del mes séptimo.",
 		),
 		buildFixedFeast(
 			"Shemini Atzeret",

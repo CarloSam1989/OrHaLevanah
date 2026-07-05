@@ -53,6 +53,13 @@ type BiblicalMonthResponse struct {
 	Moon                 MoonInfo `json:"moon"`
 }
 
+type BiblicalCalendarDay struct {
+	CivilDate     string `json:"civil_date"`
+	BiblicalDay   int    `json:"biblical_day"`
+	BiblicalMonth int    `json:"biblical_month"`
+	MonthStart    string `json:"month_start"`
+}
+
 type Feast struct {
 	Name               string `json:"name"`
 	BiblicalMonth      int    `json:"biblical_month"`
@@ -83,6 +90,7 @@ type FeastsResponse struct {
 	BiblicalMonth  int      `json:"biblical_month"`
 	BiblicalDay    int      `json:"biblical_day"`
 	DayNote        string   `json:"day_note"`
+	AllFeasts      []Feast  `json:"all_feasts"`
 	CurrentFeasts  []Feast  `json:"current_feasts"`
 	UpcomingFeasts []Feast  `json:"upcoming_feasts"`
 	Omer           OmerInfo `json:"omer"`

@@ -4,6 +4,7 @@ import (
 	"sort"
 	"time"
 
+	"or-halevanah/internal/biblical"
 	"or-halevanah/internal/models"
 	"or-halevanah/internal/solar"
 )
@@ -114,7 +115,10 @@ func GetAllFeasts(monthStart time.Time) []models.Feast {
 	all = append(all, CalculateShavuot(monthStart))
 
 	// Mes 7
-	monthSevenStart := monthStart.AddDate(0, 6, 0)
+	monthSevenStart := monthStart
+	for i := 1; i < 7; i++ {
+		monthSevenStart = biblical.FindNextEstimatedMonthStart(monthSevenStart)
+	}
 	all = append(all, GetSeventhMonthFixedFeasts(monthSevenStart)...)
 
 	sort.Slice(all, func(i, j int) bool {

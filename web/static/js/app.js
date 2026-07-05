@@ -11,6 +11,7 @@ const calendarState = {
   selectedDate: null,
   feastData: null,
   biblicalMonthInfo: null,
+  biblicalCalendarDays: new Map(),
   jerusalemClockInterval: null,
 };
 
@@ -446,8 +447,23 @@ function renderBiblicalVersesSection(data) {
 }
 
 function normalizeDateInput(dateStr) {
+  if (typeof dateStr !== "string") return null;
+
   const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
 }
 
 function formatDateLabel(date) {
@@ -525,10 +541,10 @@ function getBiblicalMonthName(monthNumber) {
 
 function getBiblicalDayWindowLabel(dateObj) {
   const startDay = new Date(dateObj);
-  startDay.setDate(startDay.getDate() - 1);
+  const endDay = addDays(startDay, 1);
 
   const startName = capitalize(getWeekdayName(startDay));
-  const endName = capitalize(getWeekdayName(dateObj));
+  const endName = capitalize(getWeekdayName(endDay));
 
   return `${startName} al atardecer → ${endName} al atardecer`;
 }
@@ -549,7 +565,8 @@ function addDays(dateObj, days) {
 
 function adjustToBiblicalStart(dateStr) {
   if (!dateStr) return null;
-  return formatDateKey(addDays(normalizeDateInput(dateStr), -1));
+  const date = normalizeDateInput(dateStr);
+  return date ? formatDateKey(date) : null;
 }
 
 function getFeastIcon(feastName) {
@@ -559,9 +576,9 @@ function getFeastIcon(feastName) {
   if (name.includes("levadura") || name.includes("matzot")) return "🫓";
   if (name.includes("bikkurim") || name.includes("primeros frutos")) return "🌾";
   if (name.includes("shavuot")) return "📜";
-  if (name.includes("trompetas")) return "📯";
+  if (name.includes("trompetas") || name.includes("teruah")) return "📯";
   if (name.includes("kippur")) return "🕯️";
-  if (name.includes("tabern")) return "⛺";
+  if (name.includes("tabern") || name.includes("sucot") || name.includes("sukkot")) return "⛺";
   return "✦";
 }
 
@@ -580,13 +597,13 @@ function getFeastTheme(feastName) {
   if (name.includes("shavuot")) {
     return { cls: "theme-shavuot", short: "Shavuot" };
   }
-  if (name.includes("trompetas")) {
+  if (name.includes("trompetas") || name.includes("teruah")) {
     return { cls: "theme-trumpets", short: "Trompetas" };
   }
   if (name.includes("kippur")) {
     return { cls: "theme-kippur", short: "Kippur" };
   }
-  if (name.includes("tabern")) {
+  if (name.includes("tabern") || name.includes("sucot") || name.includes("sukkot")) {
     return { cls: "theme-sukkot", short: "Sukkot" };
   }
 
@@ -600,9 +617,9 @@ function getFeastOrder(feastName) {
   if (name.includes("levadura") || name.includes("matzot")) return 2;
   if (name.includes("bikkurim") || name.includes("primeros frutos")) return 3;
   if (name.includes("shavuot")) return 4;
-  if (name.includes("trompetas")) return 5;
+  if (name.includes("trompetas") || name.includes("teruah")) return 5;
   if (name.includes("kippur")) return 6;
-  if (name.includes("tabern")) return 7;
+  if (name.includes("tabern") || name.includes("sucot") || name.includes("sukkot")) return 7;
 
   return 99;
 }
@@ -631,6 +648,11 @@ function getBiblicalMonthStarts() {
 }
 
 function getMonthStartType(dateKey) {
+  const calendarDay = calendarState.biblicalCalendarDays.get(dateKey);
+  if (calendarDay?.biblical_day === 1) {
+    return "current";
+  }
+
   if (dateKey === calendarState.biblicalMonthInfo?.month_start) {
     return "current";
   }
@@ -646,9 +668,32 @@ function isMonthStartDate(dateKey) {
   return getBiblicalMonthStarts().includes(dateKey);
 }
 
+function getBiblicalDayForDate(dateKey) {
+  return calendarState.biblicalCalendarDays.get(dateKey)?.biblical_day ?? null;
+}
+
+function getBiblicalMonthForDate(dateKey) {
+  return calendarState.biblicalCalendarDays.get(dateKey)?.biblical_month ?? null;
+}
+
 async function loadBiblicalMonthInfo() {
   const payload = await fetchJson("/api/biblical/jerusalem/month");
   calendarState.biblicalMonthInfo = payload?.data || null;
+}
+
+async function loadBiblicalCalendarMonth(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const payload = await fetchJson(
+    `/api/biblical/jerusalem/calendar?year=${year}&month=${month}`
+  );
+  const days = Array.isArray(payload?.data) ? payload.data : [];
+
+  days.forEach((day) => {
+    if (day?.civil_date) {
+      calendarState.biblicalCalendarDays.set(day.civil_date, day);
+    }
+  });
 }
 
 function getTodayShabbatState(civilDate, afterSunset) {
@@ -951,10 +996,12 @@ function buildMobileMarkers(feasts, isFriday, isSaturday, isBiblicalNewMonth) {
 
 function groupFeastsByVisibleDay(data) {
   const map = new Map();
-  const all = [
-    ...(data.current_feasts || []),
-    ...(data.upcoming_feasts || []),
-  ];
+  const all = Array.isArray(data.all_feasts)
+    ? data.all_feasts
+    : [
+        ...(data.current_feasts || []),
+        ...(data.upcoming_feasts || []),
+      ];
 
   for (const feast of all) {
     const rawStartStr = feast.gregorian_start_date || feast.gregorian_date;
@@ -971,7 +1018,7 @@ function groupFeastsByVisibleDay(data) {
     const end = normalizeDateInput(shiftedEndStr);
 
     let current = new Date(start);
-    while (current <= end) {
+    while (current < end) {
       const key = formatDateKey(current);
       if (!map.has(key)) {
         map.set(key, []);
@@ -1194,7 +1241,7 @@ function renderDayDetail(dateKey, feastsMap) {
   }
 
   if (isSaturday) {
-    headerExtras.push(`🕯️ Shabat bíblico: ${getBiblicalDayWindowLabel(dateObj)}`);
+    headerExtras.push(`🕯️ Shabat bíblico: ${getBiblicalDayWindowLabel(addDays(dateObj, -1))}`);
   }
 
   if (isBiblicalNewMonth) {
@@ -1372,8 +1419,13 @@ function renderCalendar(data) {
   const feastsMap = groupFeastsByVisibleDay(data);
   const isMobile = isMobileCalendarView();
 
-  const year = calendarState.year;
-  const month = calendarState.month;
+  const currentDate =
+    calendarState.currentDate instanceof Date &&
+    !Number.isNaN(calendarState.currentDate.getTime())
+      ? calendarState.currentDate
+      : new Date();
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
   const firstDay = new Date(year, month, 1);
   const startDay = firstDay.getDay();
@@ -1402,7 +1454,13 @@ function renderCalendar(data) {
     const dateKey = formatDateKey(dateObj);
 
     const feasts = feastsMap.get(dateKey) || [];
+    const isSukkotDay = feasts.some((feast) => {
+      const name = (feast?.name || "").toLowerCase();
+      return name.includes("sucot") || name.includes("sukkot") || name.includes("tabern");
+    });
     const omerDayForThisDate = getOmerDayForDate(dateKey);
+    const biblicalDayForThisDate = getBiblicalDayForDate(dateKey);
+    const biblicalMonthForThisDate = getBiblicalMonthForDate(dateKey);
 
     const isToday = dateKey === todayKey;
     const isSelected = calendarState.selectedDate === dateKey;
@@ -1474,6 +1532,7 @@ function renderCalendar(data) {
         <div class="calendar-day 
           ${isToday ? "is-today" : ""} 
           ${feasts.length ? "has-feast" : ""} 
+          ${isSukkotDay ? "has-sukkot" : ""}
           ${isSelected ? "is-selected" : ""} 
           ${isFriday ? "is-friday" : ""} 
           ${isSaturday ? "is-shabbat-day" : ""} 
@@ -1488,6 +1547,11 @@ function renderCalendar(data) {
           <div class="calendar-day-number">
             <div>${day}</div>
             ${
+              biblicalDayForThisDate && biblicalMonthForThisDate
+                ? `<div class="biblical-day-label" title="${getBiblicalDayWindowLabel(dateObj)}">Al ocaso: Día ${biblicalDayForThisDate} mes ${biblicalMonthForThisDate}</div>`
+                : ""
+            }
+            ${
               omerDayForThisDate
                 ? `<div class="omer-label">${isMobile ? omerDayForThisDate : `Omer: ${omerDayForThisDate}`}</div>`
                 : ""
@@ -1500,6 +1564,8 @@ function renderCalendar(data) {
             ${shabbatMarker}
             ${newMonthMarker}
           </div>
+
+          ${isSukkotDay ? `<div class="sukkot-day-label">⛺ Sucot</div>` : ""}
 
           <div class="calendar-day-note"></div>
         </div>
@@ -1520,8 +1586,9 @@ function renderCalendar(data) {
     });
   });
 
-  // Hover fiestas
-  attachFeastHoverEvents();
+  // Interacciones de fiestas y Shabat sobre las celdas recién renderizadas.
+  bindFeastHoverCards();
+  bindShabbatHoverCard();
 }
 
 function renderFeastsData(payload) {
@@ -1569,9 +1636,10 @@ async function loadFeasts() {
     ]);
 
     const civilDate = feastPayload?.data?.civil_date;
-    calendarState.currentDate = civilDate ? normalizeDateInput(civilDate) : new Date();
+    calendarState.currentDate = normalizeDateInput(civilDate) || new Date();
     calendarState.selectedDate = civilDate || null;
 
+    await loadBiblicalCalendarMonth(calendarState.currentDate);
     renderFeastsData(feastPayload);
   } catch (error) {
     console.error("Error cargando fiestas:", error);
@@ -1590,7 +1658,7 @@ async function loadFeasts() {
   }
 }
 
-function moveCalendarMonth(offset) {
+async function moveCalendarMonth(offset) {
   if (!calendarState.feastData) return;
 
   calendarState.currentDate = new Date(
@@ -1599,6 +1667,7 @@ function moveCalendarMonth(offset) {
     1
   );
 
+  await loadBiblicalCalendarMonth(calendarState.currentDate);
   renderCalendar(calendarState.feastData);
 }
 
@@ -1635,20 +1704,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnPrevMonth) {
-    btnPrevMonth.addEventListener("click", () => moveCalendarMonth(-1));
+    btnPrevMonth.addEventListener("click", () => {
+      moveCalendarMonth(-1).catch(console.error);
+    });
   }
 
   if (btnNextMonth) {
-    btnNextMonth.addEventListener("click", () => moveCalendarMonth(1));
+    btnNextMonth.addEventListener("click", () => {
+      moveCalendarMonth(1).catch(console.error);
+    });
   }
 
   if (btnTodayMonth) {
-    btnTodayMonth.addEventListener("click", () => {
+    btnTodayMonth.addEventListener("click", async () => {
       if (!calendarState.feastData) return;
 
-      calendarState.currentDate = normalizeDateInput(calendarState.feastData.civil_date);
+      calendarState.currentDate =
+        normalizeDateInput(calendarState.feastData.civil_date) || new Date();
       calendarState.selectedDate = calendarState.feastData.civil_date;
 
+      await loadBiblicalCalendarMonth(calendarState.currentDate);
       renderCalendar(calendarState.feastData);
       renderDayDetail(calendarState.selectedDate, groupFeastsByVisibleDay(calendarState.feastData));
 
