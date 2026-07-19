@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"or-halevanah/internal/api"
+	"or-halevanah/internal/sighting"
 )
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -24,6 +25,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+	stopSightings := make(chan struct{})
+	sighting.StartAutoRefresh(stopSightings)
+	defer close(stopSightings)
+
 	// Puerto dinámico para Railway
 	port := os.Getenv("PORT")
 	if port == "" {

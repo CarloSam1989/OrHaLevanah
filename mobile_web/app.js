@@ -351,7 +351,8 @@ function fillSelectedExtraUI(data) {
     selectedMonthStart.textContent = safeText(data?.month_start, "-");
   }
   if (selectedNextMonthStart) {
-    selectedNextMonthStart.textContent = safeText(data?.next_month_start, "-");
+    const nasaEstimated = data?.nasa_forecast?.possible_rosh_chodesh === data?.next_month_start;
+    selectedNextMonthStart.textContent = `${safeText(data?.next_month_start, "-")}${nasaEstimated ? " · posible NASA/JPL" : ""}`;
   }
   if (selectedAfterSunset) {
     selectedAfterSunset.textContent = getAfterSunsetText(data?.after_sunset);

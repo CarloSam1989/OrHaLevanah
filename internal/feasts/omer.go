@@ -14,8 +14,8 @@ func parseDate(dateStr string) time.Time {
 	return t
 }
 
-func parseDateTime(dateTimeStr string) time.Time {
-	t, _ := time.Parse("2006-01-02 15:04", dateTimeStr)
+func parseDateTime(dateTimeStr string, loc *time.Location) time.Time {
+	t, _ := time.ParseInLocation("2006-01-02 15:04", dateTimeStr, loc)
 	return t
 }
 
@@ -52,7 +52,7 @@ func CalculateBikkurim(monthStart time.Time) models.Feast {
 
 func CalculateShavuot(monthStart time.Time) models.Feast {
 	bikkurim := CalculateBikkurim(monthStart)
-	bikkurimDate, _ := time.Parse("2006-01-02", bikkurim.GregorianDate)
+	bikkurimDate, _ := time.ParseInLocation("2006-01-02", bikkurim.GregorianDate, monthStart.Location())
 	shavuotDay := bikkurimDate.AddDate(0, 0, 49)
 
 	startAt := solar.ApproxSunsetJerusalem(shavuotDay)
@@ -132,8 +132,8 @@ func GetCurrentFeasts(monthStart, nowJerusalem time.Time) []models.Feast {
 	result := make([]models.Feast, 0)
 
 	for _, feast := range GetAllFeasts(monthStart) {
-		startAt := parseDateTime(feast.BiblicalStartAt)
-		endAt := parseDateTime(feast.BiblicalEndAt)
+		startAt := parseDateTime(feast.BiblicalStartAt, monthStart.Location())
+		endAt := parseDateTime(feast.BiblicalEndAt, monthStart.Location())
 
 		if (nowJerusalem.Equal(startAt) || nowJerusalem.After(startAt)) && nowJerusalem.Before(endAt) {
 			result = append(result, feast)
@@ -147,7 +147,7 @@ func GetUpcomingFeasts(monthStart, nowJerusalem time.Time) []models.Feast {
 	result := make([]models.Feast, 0)
 
 	for _, feast := range GetAllFeasts(monthStart) {
-		startAt := parseDateTime(feast.BiblicalStartAt)
+		startAt := parseDateTime(feast.BiblicalStartAt, monthStart.Location())
 
 		if startAt.After(nowJerusalem) {
 			result = append(result, feast)
@@ -155,7 +155,7 @@ func GetUpcomingFeasts(monthStart, nowJerusalem time.Time) []models.Feast {
 	}
 
 	sort.Slice(result, func(i, j int) bool {
-		return parseDateTime(result[i].BiblicalStartAt).Before(parseDateTime(result[j].BiblicalStartAt))
+		return parseDateTime(result[i].BiblicalStartAt, monthStart.Location()).Before(parseDateTime(result[j].BiblicalStartAt, monthStart.Location()))
 	})
 
 	return result

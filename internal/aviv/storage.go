@@ -3,6 +3,7 @@ package aviv
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
 const (
@@ -10,10 +11,24 @@ const (
 	reportsFilePath = "data/aviv_reports.json"
 )
 
+func statusPath() string {
+	if value := strings.TrimSpace(os.Getenv("AVIV_STATUS_PATH")); value != "" {
+		return value
+	}
+	return statusFilePath
+}
+
+func reportsPath() string {
+	if value := strings.TrimSpace(os.Getenv("AVIV_REPORTS_PATH")); value != "" {
+		return value
+	}
+	return reportsFilePath
+}
+
 func LoadStatus() (Status, error) {
 	var status Status
 
-	data, err := os.ReadFile(statusFilePath)
+	data, err := os.ReadFile(statusPath())
 	if err != nil {
 		return status, err
 	}
@@ -28,13 +43,13 @@ func SaveStatus(status Status) error {
 		return err
 	}
 
-	return os.WriteFile(statusFilePath, data, 0644)
+	return os.WriteFile(statusPath(), data, 0644)
 }
 
 func LoadReports() ([]Report, error) {
 	var reports []Report
 
-	data, err := os.ReadFile(reportsFilePath)
+	data, err := os.ReadFile(reportsPath())
 	if err != nil {
 		return reports, err
 	}
@@ -49,5 +64,5 @@ func SaveReports(reports []Report) error {
 		return err
 	}
 
-	return os.WriteFile(reportsFilePath, data, 0644)
+	return os.WriteFile(reportsPath(), data, 0644)
 }

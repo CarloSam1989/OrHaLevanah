@@ -843,6 +843,7 @@ function buildTodayBiblicalHtml(todayData, feastData, monthData) {
       <div class="today-info-box">
         <span class="today-info-label">Próxima cabeza de mes</span>
         <strong>${monthData?.next_month_start || "-"}</strong>
+        <small>${monthData?.nasa_forecast?.possible_rosh_chodesh ? "Posible · estimación NASA/JPL Horizons" : "Estimación astronómica local"}</small>
       </div>
     </div>
 

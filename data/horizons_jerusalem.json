@@ -1,0 +1,19 @@
+{
+  "forecast": {
+    "possible_rosh_chodesh": "2026-08-13",
+    "sample_time_jerusalem": "2026-08-13 19:33",
+    "azimuth_degrees": 278.435956,
+    "elevation_degrees": 4.251018,
+    "illumination_percent": 1.13497,
+    "solar_elongation_degrees": 12.1963,
+    "phase_angle_degrees": 167.7743,
+    "evening_crescent": true,
+    "status": "estimated",
+    "note": "Posible creciente visible desde Jerusalén; pendiente de confirmación humana en Israel.",
+    "source": "NASA/JPL Horizons",
+    "source_url": "https://ssd.jpl.nasa.gov/horizons/",
+    "api_version": "1.2",
+    "checked_at": "2026-07-18T18:39:26.7890857Z",
+    "based_on_month_start": "2026-07-15"
+  }
+}

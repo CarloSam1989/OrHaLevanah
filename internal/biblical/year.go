@@ -3,8 +3,22 @@ package biblical
 import (
 	"time"
 
+	"or-halevanah/internal/aviv"
 	"or-halevanah/internal/location"
+	"or-halevanah/internal/solar"
 )
+
+func confirmedBiblicalYearStart(gregorianYear int, loc *time.Location) (time.Time, bool) {
+	status, err := aviv.LoadStatus()
+	if err != nil || !status.OfficialConfirmed || status.Year != gregorianYear || status.BiblicalYearStart == "" {
+		return time.Time{}, false
+	}
+	start, err := time.ParseInLocation("2006-01-02", status.BiblicalYearStart, loc)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return start, true
+}
 
 func normalizeYearAnchor(year int, loc *time.Location) time.Time {
 	return time.Date(year, time.March, 20, 12, 0, 0, 0, loc)
@@ -14,6 +28,9 @@ func normalizeYearAnchor(year int, loc *time.Location) time.Time {
 // buscando la primera cabeza de mes observacional desde una ventana
 // que empieza cerca del equinoccio de primavera.
 func findFirstMonthStartForGregorianYear(gregorianYear int, loc *time.Location) time.Time {
+	if confirmed, ok := confirmedBiblicalYearStart(gregorianYear, loc); ok {
+		return confirmed
+	}
 	anchor := normalizeYearAnchor(gregorianYear, loc)
 
 	for i := 0; i <= 45; i++ {
@@ -32,7 +49,7 @@ func EstimateBiblicalYearStart(now time.Time) time.Time {
 	loc := now.Location()
 	currentYearStart := findFirstMonthStartForGregorianYear(now.Year(), loc)
 
-	if now.Before(currentYearStart) {
+	if now.Before(solar.ApproxSunsetJerusalem(currentYearStart)) {
 		return findFirstMonthStartForGregorianYear(now.Year()-1, loc)
 	}
 
@@ -52,7 +69,7 @@ func GetCurrentBiblicalMonthAt(now time.Time) int {
 
 	for month < 12 {
 		nextStart := FindNextEstimatedMonthStart(currentStart)
-		if now.Before(nextStart) {
+		if now.Before(solar.ApproxSunsetJerusalem(nextStart)) {
 			return month
 		}
 		currentStart = nextStart

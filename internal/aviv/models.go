@@ -12,6 +12,7 @@ type Report struct {
 
 type Status struct {
 	Year                int    `json:"year"`
+	BiblicalYearStart   string `json:"biblical_year_start,omitempty"`
 	EquinoxPassed       bool   `json:"equinox_passed"`
 	OfficialConfirmed   bool   `json:"official_confirmed"`
 	OfficialRejected    bool   `json:"official_rejected"`

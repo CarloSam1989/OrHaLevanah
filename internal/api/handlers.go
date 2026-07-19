@@ -9,11 +9,31 @@ import (
 	"or-halevanah/internal/aviv"
 	"or-halevanah/internal/biblical"
 	"or-halevanah/internal/feasts"
+	"or-halevanah/internal/horizons"
 	"or-halevanah/internal/location"
 	"or-halevanah/internal/lunar"
 	"or-halevanah/internal/models"
+	"or-halevanah/internal/sighting"
 	"or-halevanah/internal/solar"
 )
+
+func observationalInfo(now time.Time, possible bool, note string) models.ObservationalInfo {
+	info := models.ObservationalInfo{
+		PossibleNewMonth: possible,
+		VisibilityNote:   note,
+		Status:           "estimated",
+	}
+	if date, report, ok := sighting.LatestConfirmedOnOrBefore(now, 35); ok {
+		reportSunset := solar.ApproxSunsetJerusalem(date)
+		info.PossibleNewMonth = possible || (date.Year() == now.Year() && date.YearDay() == now.YearDay() && !now.Before(reportSunset))
+		info.VisibilityNote = "Creciente confirmado por reporte de avistamiento en Israel"
+		info.Status = "confirmed"
+		info.ConfirmedDate = date.Format("2006-01-02")
+		info.SourceName = report.SourceName
+		info.SourceURL = report.SourceURL
+	}
+	return info
+}
 
 func BiblicalJerusalemCalendarHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -156,10 +176,7 @@ func BiblicalJerusalemTodayHandler(w http.ResponseWriter, r *http.Request) {
 		DayNote:       "El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.",
 		Location:      jerusalem,
 		Moon:          moonInfo,
-		Observational: models.ObservationalInfo{
-			PossibleNewMonth: possibleNewMonth,
-			VisibilityNote:   note,
-		},
+		Observational: observationalInfo(nowJerusalem, possibleNewMonth, note),
 	}
 
 	response := models.ApiResponse{
@@ -189,7 +206,14 @@ func BiblicalJerusalemMonthHandler(w http.ResponseWriter, r *http.Request) {
 
 	moonInfo := lunar.CalculateMoonInfo(nowJerusalem)
 	monthStart := biblical.FindEstimatedMonthStart(nowJerusalem)
+	_ = horizons.RefreshIfStale(monthStart, jerusalem)
 	nextMonthStart := biblical.FindNextEstimatedMonthStart(monthStart)
+	nasaForecast, hasNASAForecast := horizons.ForecastFor(monthStart)
+	if hasNASAForecast {
+		if nasaDate, parseErr := time.ParseInLocation("2006-01-02", nasaForecast.PossibleRoshChodesh, loc); parseErr == nil {
+			nextMonthStart = nasaDate
+		}
+	}
 	biblicalDay := biblical.CalculateBiblicalDay(monthStart, nowJerusalem, afterSunset)
 
 	data := models.BiblicalMonthResponse{
@@ -206,6 +230,8 @@ func BiblicalJerusalemMonthHandler(w http.ResponseWriter, r *http.Request) {
 		IsPossibleNextDayOne: false,
 		Location:             jerusalem,
 		Moon:                 moonInfo,
+		Observational:        observationalInfo(nowJerusalem, biblicalDay == 1, "Inicio de mes estimado astronomicamente"),
+		NASAForecast:         nasaForecast,
 	}
 
 	response := models.ApiResponse{
@@ -215,6 +241,47 @@ func BiblicalJerusalemMonthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
+}
+
+func MoonSightingsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	refreshErr := sighting.RefreshIfStale()
+	reports, err := sighting.LoadReports()
+	if err != nil {
+		http.Error(w, "No se pudieron cargar los avistamientos lunares", http.StatusInternalServerError)
+		return
+	}
+	message := "Avistamientos lunares cargados correctamente"
+	if refreshErr != nil {
+		message = "Avistamientos cargados desde cache; la fuente externa no pudo actualizarse"
+	}
+	json.NewEncoder(w).Encode(models.ApiResponse{Success: true, Message: message, Data: reports})
+}
+
+func MoonHorizonsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	jerusalem := location.GetJerusalem()
+	loc, err := time.LoadLocation(jerusalem.Timezone)
+	if err != nil {
+		http.Error(w, "No se pudo cargar la zona horaria de Jerusalén", http.StatusInternalServerError)
+		return
+	}
+	monthStart := biblical.FindEstimatedMonthStart(time.Now().In(loc))
+	refreshErr := horizons.RefreshIfStale(monthStart, jerusalem)
+	forecast, ok := horizons.ForecastFor(monthStart)
+	if !ok {
+		if refreshErr != nil {
+			http.Error(w, "NASA/JPL Horizons no pudo generar el pronóstico: "+refreshErr.Error(), http.StatusBadGateway)
+			return
+		}
+		http.Error(w, "NASA/JPL Horizons no encontró una ventana conservadora", http.StatusNotFound)
+		return
+	}
+	message := "Próximo Rosh Jodesh posible estimado con NASA/JPL Horizons"
+	if refreshErr != nil {
+		message = "Pronóstico NASA/JPL cargado desde caché"
+	}
+	json.NewEncoder(w).Encode(models.ApiResponse{Success: true, Message: message, Data: forecast})
 }
 
 func FeastsJerusalemHandler(w http.ResponseWriter, r *http.Request) {

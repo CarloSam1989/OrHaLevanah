@@ -37,5 +37,11 @@ func ApproxSunsetJerusalem(t time.Time) time.Time {
 		hour--
 	}
 
-	return time.Date(year, month, day, hour, minute, 0, 0, loc)
+	sunset := time.Date(year, month, day, hour, minute, 0, 0, loc)
+	// La curva base representa hora estandar. Israel adelanta una hora durante
+	// IDT; sin este ajuste el ocaso de verano quedaba una hora demasiado pronto.
+	if sunset.IsDST() {
+		sunset = sunset.Add(time.Hour)
+	}
+	return sunset
 }

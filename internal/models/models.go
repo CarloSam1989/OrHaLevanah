@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Location struct {
 	Name      string  `json:"name"`
 	Latitude  float64 `json:"latitude"`
@@ -23,6 +25,28 @@ type MoonTodayResponse struct {
 type ObservationalInfo struct {
 	PossibleNewMonth bool   `json:"possible_new_month"`
 	VisibilityNote   string `json:"visibility_note"`
+	Status           string `json:"status"`
+	ConfirmedDate    string `json:"confirmed_date,omitempty"`
+	SourceName       string `json:"source_name,omitempty"`
+	SourceURL        string `json:"source_url,omitempty"`
+}
+
+type HorizonsForecast struct {
+	PossibleRoshChodesh string    `json:"possible_rosh_chodesh"`
+	SampleTimeJerusalem string    `json:"sample_time_jerusalem"`
+	AzimuthDegrees      float64   `json:"azimuth_degrees"`
+	ElevationDegrees    float64   `json:"elevation_degrees"`
+	IlluminationPercent float64   `json:"illumination_percent"`
+	SolarElongation     float64   `json:"solar_elongation_degrees"`
+	PhaseAngle          float64   `json:"phase_angle_degrees"`
+	EveningCrescent     bool      `json:"evening_crescent"`
+	Status              string    `json:"status"`
+	Note                string    `json:"note"`
+	Source              string    `json:"source"`
+	SourceURL           string    `json:"source_url"`
+	APIVersion          string    `json:"api_version,omitempty"`
+	CheckedAt           time.Time `json:"checked_at"`
+	BasedOnMonthStart   string    `json:"based_on_month_start"`
 }
 
 type BiblicalTodayResponse struct {
@@ -38,19 +62,21 @@ type BiblicalTodayResponse struct {
 }
 
 type BiblicalMonthResponse struct {
-	CivilDate            string   `json:"civil_date"`
-	BiblicalDate         string   `json:"biblical_date"`
-	JerusalemTime        string   `json:"jerusalem_time"`
-	SunsetTime           string   `json:"sunset_time"`
-	AfterSunset          bool     `json:"after_sunset"`
-	DayNote              string   `json:"day_note"`
-	MonthStart           string   `json:"month_start"`
-	NextMonthStart       string   `json:"next_month_start"`
-	BiblicalDay          int      `json:"biblical_day"`
-	IsPossibleDayOne     bool     `json:"is_possible_day_one"`
-	IsPossibleNextDayOne bool     `json:"is_possible_next_day_one"`
-	Location             Location `json:"location"`
-	Moon                 MoonInfo `json:"moon"`
+	CivilDate            string            `json:"civil_date"`
+	BiblicalDate         string            `json:"biblical_date"`
+	JerusalemTime        string            `json:"jerusalem_time"`
+	SunsetTime           string            `json:"sunset_time"`
+	AfterSunset          bool              `json:"after_sunset"`
+	DayNote              string            `json:"day_note"`
+	MonthStart           string            `json:"month_start"`
+	NextMonthStart       string            `json:"next_month_start"`
+	BiblicalDay          int               `json:"biblical_day"`
+	IsPossibleDayOne     bool              `json:"is_possible_day_one"`
+	IsPossibleNextDayOne bool              `json:"is_possible_next_day_one"`
+	Location             Location          `json:"location"`
+	Moon                 MoonInfo          `json:"moon"`
+	Observational        ObservationalInfo `json:"observational"`
+	NASAForecast         HorizonsForecast  `json:"nasa_forecast"`
 }
 
 type BiblicalCalendarDay struct {

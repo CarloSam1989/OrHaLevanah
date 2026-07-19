@@ -3,7 +3,9 @@ package biblical
 import (
 	"time"
 
+	"or-halevanah/internal/horizons"
 	"or-halevanah/internal/lunar"
+	"or-halevanah/internal/sighting"
 	"or-halevanah/internal/solar"
 )
 
@@ -48,6 +50,12 @@ func FindEstimatedMonthStart(now time.Time) time.Time {
 		searchEnd = today.AddDate(0, 0, -1)
 	}
 
+	// Un avistamiento real confirmado en Israel prevalece sobre cualquier
+	// estimacion astronomica para el mismo ciclo lunar.
+	if confirmedStart, _, ok := sighting.LatestConfirmedOnOrBefore(searchEnd, 35); ok {
+		return normalizeDate(confirmedStart)
+	}
+
 	for i := 0; i <= 35; i++ {
 		candidate := searchEnd.AddDate(0, 0, -i)
 		if isCandidateMonthStart(candidate) {
@@ -63,6 +71,17 @@ func FindEstimatedMonthStart(now time.Time) time.Time {
 // partiendo del inicio actual.
 func FindNextEstimatedMonthStart(currentMonthStart time.Time) time.Time {
 	currentMonthStart = normalizeDate(currentMonthStart)
+	if confirmed, _, ok := sighting.FirstConfirmedBetween(
+		currentMonthStart.AddDate(0, 0, 28),
+		currentMonthStart.AddDate(0, 0, 32),
+	); ok {
+		return normalizeDate(confirmed)
+	}
+	if forecast, ok := horizons.ForecastFor(currentMonthStart); ok {
+		if predicted, err := time.ParseInLocation("2006-01-02", forecast.PossibleRoshChodesh, currentMonthStart.Location()); err == nil {
+			return normalizeDate(predicted)
+		}
+	}
 
 	// Ventana típica de mes lunar observacional: 29 o 30 días,
 	// con un margen pequeño.
