@@ -5,10 +5,14 @@ import (
 
 	"or-halevanah/internal/aviv"
 	"or-halevanah/internal/location"
+	"or-halevanah/internal/sighting"
 	"or-halevanah/internal/solar"
 )
 
 func confirmedBiblicalYearStart(gregorianYear int, loc *time.Location) (time.Time, bool) {
+	if start, _, ok := sighting.ConfirmedBiblicalMonthStart(gregorianYear, 1, loc); ok {
+		return start, true
+	}
 	status, err := aviv.LoadStatus()
 	if err != nil || !status.OfficialConfirmed || status.Year != gregorianYear || status.BiblicalYearStart == "" {
 		return time.Time{}, false

@@ -1012,6 +1012,226 @@ input::placeholder {
   padding-bottom: 48px;
 }
 
+.top-row-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  margin: 0;
+}
+
+.top-row-grid > .month-head-card,
+.top-row-grid > .biblical-verses-section {
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.top-row-grid > .biblical-verses-section {
+  border-left: 1px solid rgba(212, 176, 106, 0.16);
+}
+
+.top-row-grid .month-head-grid {
+  grid-template-columns: 1fr;
+}
+
+.top-row-grid .month-start-block {
+  border-right: 0;
+  border-bottom: 1px solid rgba(212, 176, 106, 0.16);
+}
+
+@media (max-width: 1050px) {
+  .top-row-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .top-row-grid .month-head-grid {
+    grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
+  }
+
+  .top-row-grid .month-start-block {
+    border-right: 1px solid rgba(212, 176, 106, 0.16);
+    border-bottom: 0;
+  }
+
+  .top-row-grid > .biblical-verses-section {
+    border-left: 0;
+    border-top: 1px solid rgba(212, 176, 106, 0.16);
+  }
+}
+
+.month-head-card {
+  overflow: hidden;
+}
+
+.top-summary-card {
+  margin-bottom: 22px;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(212, 176, 106, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(212, 176, 106, 0.14), transparent 32%),
+    linear-gradient(135deg, rgba(10, 34, 64, 0.99), rgba(15, 47, 87, 0.94));
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.25);
+}
+
+.month-head-content {
+  min-height: 210px;
+}
+
+.month-head-brand {
+  padding: 24px 34px 20px;
+  border-bottom: 1px solid rgba(212, 176, 106, 0.16);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.month-head-brand-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--logo-gold-soft);
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.month-head-brand-name > span {
+  font-size: 1.65em;
+  filter: drop-shadow(0 0 10px rgba(212, 176, 106, 0.28));
+}
+
+.month-head-brand p {
+  margin: 6px 0 0;
+  color: rgba(243, 234, 217, 0.72);
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
+.month-head-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
+}
+
+.month-start-block,
+.month-feasts-block {
+  padding: 34px;
+}
+
+.month-start-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid rgba(212, 176, 106, 0.16);
+}
+
+.month-head-label {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--logo-gold-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.month-start-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.month-start-title > span {
+  font-size: 2.3rem;
+}
+
+.month-start-title h1 {
+  margin: 0;
+  color: var(--logo-cream);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.05;
+}
+
+.month-start-date {
+  margin-top: 16px;
+  color: #ffffff;
+  font-size: 1.15rem;
+}
+
+.month-feasts-list {
+  display: grid;
+  gap: 10px;
+}
+
+.month-feast-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border-radius: 15px;
+  border: 1px solid rgba(230, 211, 160, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.month-feast-icon {
+  font-size: 1.4rem;
+}
+
+.month-feast-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.month-feast-item strong {
+  color: var(--logo-cream);
+}
+
+.month-feast-item span:last-child,
+.month-feasts-empty {
+  color: rgba(243, 234, 217, 0.72);
+  font-size: 0.9rem;
+}
+
+.month-feasts-empty {
+  margin: 0;
+  padding: 18px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+@media (max-width: 760px) {
+  .top-row-grid .month-head-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .top-row-grid .month-start-block {
+    border-right: 0;
+    border-bottom: 1px solid rgba(212, 176, 106, 0.16);
+  }
+
+  .month-head-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .month-start-block {
+    border-right: 0;
+    border-bottom: 1px solid rgba(212, 176, 106, 0.16);
+  }
+
+  .month-start-block,
+  .month-feasts-block {
+    padding: 26px 22px;
+  }
+
+  .month-head-brand {
+    padding: 22px;
+  }
+}
+
 .portal-hero {
   position: relative;
   margin-bottom: 22px;
@@ -1535,4 +1755,157 @@ input::placeholder {
   font-weight: 700;
   line-height: 1.1;
   white-space: normal;
+}
+
+/* Compact daily summary, using the existing navy/gold palette. */
+.current-day-summary { margin-bottom: 18px; }
+.current-day-summary h2 { margin: 8px 0 12px; font-size: 1.15rem; }
+.current-day-summary p { margin: 10px 0; }
+.current-day-summary .day-indicators { gap: 6px; font-size: 0.875rem; }
+.day-indicators { display: flex; flex-wrap: wrap; gap: 8px; }
+.day-indicators span { padding: 7px 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--card-border); }
+.month-sources { margin-bottom: 18px; overflow-wrap: anywhere; scroll-margin-block: 20px; }
+.month-sources[hidden] { display: none; }
+.month-sources a { color: var(--logo-gold-soft); }
+#showMonthSources { margin-top: 10px; white-space: normal; }
+
+/* Today keeps its gold cue even when the day is selected or has a feast. */
+.calendar-grid .calendar-day.is-today {
+  border: 2px solid var(--gold);
+  box-shadow: inset 0 3px 0 rgba(255, 215, 90, .65), 0 0 12px rgba(255, 215, 90, .2);
+}
+.calendar-grid .calendar-day.is-selected { outline: 2px solid #818cf8; outline-offset: 2px; }
+.civil-day-number { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.today-badge { color: #07111f; background: var(--gold); border-radius: 5px; padding: 1px 4px; font-size: .62rem; font-weight: 800; line-height: 1.3; }
+.selected-day-events { margin-top: 16px; }
+.selected-day-events[hidden] { display: none; }
+.today-compass-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  align-items: stretch;
+  gap: 16px;
+}
+
+.today-compass-row > * { min-width: 0; }
+
+@media (max-width: 760px) {
+  .today-compass-row { grid-template-columns: 1fr; gap: 0; }
+}
+
+@media (max-width: 600px) {
+  .today-badge { font-size: .5rem; padding: 0 2px; }
+  .civil-day-number { gap: 2px; }
+  .sukkot-day-label { left: 2px; right: 2px; bottom: 4px; padding: 2px; text-align: center; font-size: .55rem; }
+}
+
+.compass-card {
+  background:
+    radial-gradient(circle at top right, rgba(255, 215, 90, 0.1), transparent 34%),
+    linear-gradient(135deg, rgba(15, 47, 87, 0.88), rgba(10, 34, 64, 0.94));
+}
+
+.compass-card h2 {
+  margin: 0;
+  color: var(--logo-cream);
+  font-size: 1.35rem;
+}
+
+.compass-layout { display: flex; align-items: center; gap: 24px; }
+
+.compass-dial {
+  position: relative;
+  flex: 0 0 164px;
+  width: 164px;
+  height: 164px;
+  border: 2px solid rgba(255, 215, 90, 0.48);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.07) 0 3px, transparent 4px),
+    repeating-conic-gradient(from -1deg, rgba(255, 255, 255, 0.22) 0 1deg, transparent 1deg 30deg),
+    rgba(7, 17, 31, 0.48);
+  box-shadow: 0 0 28px rgba(255, 215, 90, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.28);
+}
+
+.compass-dial::before {
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: inherit;
+  content: "";
+}
+
+.compass-north,
+.compass-east,
+.compass-south,
+.compass-west {
+  position: absolute;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.compass-north { top: 10px; left: 50%; color: #facc6b; transform: translateX(-50%); }
+.compass-east { top: 50%; right: 11px; transform: translateY(-50%); }
+.compass-south { bottom: 10px; left: 50%; transform: translateX(-50%); }
+.compass-west { top: 50%; left: 11px; transform: translateY(-50%); }
+
+.compass-needle {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transform-origin: center;
+  transition: transform 180ms ease-out;
+}
+
+.compass-needle::before {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 24px;
+  height: 53px;
+  background: linear-gradient(to bottom, #facc6b 0 50%, #f4f7fb 50% 100%);
+  clip-path: polygon(50% 0, 100% 100%, 50% 82%, 0 100%);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.compass-needle-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fff4cf;
+  border-radius: 50%;
+  background: #bd8e39;
+  box-shadow: 0 0 10px rgba(255, 215, 90, 0.65);
+  transform: translate(-50%, -50%);
+}
+
+.compass-info { min-width: 0; }
+.compass-bearing { display: block; color: #facc6b; font-size: 2rem; }
+.compass-status,
+.compass-distance { color: var(--muted); line-height: 1.5; }
+
+.compass-action {
+  min-height: 48px;
+  padding: 12px 18px;
+  border: 1px solid rgba(212, 176, 106, 0.35);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(212, 176, 106, 0.95), rgba(168, 133, 72, 0.95));
+  color: #102846;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.compass-action:disabled { cursor: wait; opacity: 0.7; }
+.compass-note { margin: 14px 0 0; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+
+@media (max-width: 600px) {
+  .compass-layout { gap: 16px; }
+  .compass-dial { flex-basis: 136px; width: 136px; height: 136px; }
+  .compass-needle::before { top: 23px; height: 46px; }
+  .compass-info { flex: 1; }
+  .compass-bearing { font-size: 1.6rem; }
 }

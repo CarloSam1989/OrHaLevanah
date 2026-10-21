@@ -5,62 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Or HaLevanah</title>
   <meta name="description" content="Calendario bíblico observacional basado en Jerusalén. Fiestas bíblicas, Shabat, Omer y cabeza de mes.">
-  <link rel="stylesheet" href="/static/css/styles.css?v=14">
+  <link rel="stylesheet" href="/static/css/styles.css?v=23">
   <link rel="manifest" href="/static/manifest.json">
   <link rel="icon" type="image/x-icon" href="/static/img/logo.ico">
 </head>
 <body>
   <main class="container portal-shell">
-    <section class="portal-hero">
-      <div class="portal-hero-content">
-
-        <div class="portal-hero-header">
-          <div class="portal-logo-shell">
-            <img src="/static/img/logo.png" alt="Or HaLevanah" class="portal-logo">
-          </div>
-
-          <div class="portal-hero-text">
-            <span class="portal-overline">Or HaLevanah</span>
-            <h1>Calendario bíblico observacional basado en Jerusalén</h1>
-          </div>
+    <section class="top-summary-card" aria-label="Or HaLevanah">
+      <header class="month-head-brand">
+        <div>
+          <span class="month-head-brand-name"><span aria-hidden="true">🌒</span> Or HaLevanah</span>
+          <p>Calendario bíblico observacional basado en los avistamientos desde Israel.</p>
         </div>
+      </header>
 
-        <p class="subtitle portal-subtitle">
-          El día bíblico comienza al atardecer en Jerusalén y termina al siguiente atardecer.
-          Consulta el día actual, las fiestas del Eterno, el conteo del Omer, Shabat y la
-          cabeza de mes en una sola vista.
-        </p>
-
-        <div class="portal-hero-badges">
-          <span class="portal-badge">🌒 Cabeza de mes</span>
-          <span class="portal-badge">🕯️ Shabat</span>
-          <span class="portal-badge">🌾 Omer</span>
-          <span class="portal-badge">📜 Levítico 23</span>
+      <div class="today-compass-row">
+      <section id="currentDaySummary" class="verse-group current-day-summary" aria-live="polite">Cargando información de hoy…</section>
+      <section class="card compass-card" aria-labelledby="compassTitle">
+        <div class="card-title-row">
+          <h2 id="compassTitle">Brújula hacia Jerusalén</h2>
+          <span class="pill">Dirección de oración</span>
         </div>
-
-      </div>
-    </section>
-
-    <section class="card today-biblical-card">
-      <div class="today-biblical-shell">
-        <div class="today-biblical-top">
-          <div class="today-biblical-brand">
-            <span class="today-biblical-overline">Or HaLevanah</span>
-            <h2>Hoy bíblico</h2>
-            <p>
-              Resumen del día actual según Jerusalén: fecha civil, fecha bíblica,
-              estado del Shabat, fiestas activas y conteo del Omer.
+        <div class="compass-layout">
+          <div class="compass-dial" aria-hidden="true">
+            <span class="compass-north">N</span>
+            <span class="compass-east">E</span>
+            <span class="compass-south">S</span>
+            <span class="compass-west">O</span>
+            <div id="jerusalemCompassNeedle" class="compass-needle">
+              <span class="compass-needle-center"></span>
+            </div>
+          </div>
+          <div class="compass-info">
+            <strong id="jerusalemCompassBearing" class="compass-bearing">--°</strong>
+            <p id="jerusalemCompassStatus" class="compass-status" aria-live="polite">
+              Activa la ubicación para calcular la dirección desde donde estás.
             </p>
+            <p id="jerusalemCompassDistance" class="compass-distance"></p>
+            <button id="startJerusalemCompass" class="compass-action" type="button">
+              Usar mi ubicación
+            </button>
           </div>
-
-          <button id="btnRefreshTodayBiblical" type="button" class="today-biblical-btn">
-            Actualizar
-          </button>
         </div>
+        <p class="compass-note">Mantén el teléfono en vertical para orientar la flecha. La ubicación se usa solo en este dispositivo y no se envía al servidor.</p>
+      </section>
+      </div>
 
-        <div id="todayBiblicalContent" class="today-biblical-content">
-          <div class="today-biblical-loading">Cargando resumen bíblico de hoy...</div>
-        </div>
+      <div class="top-row-grid">
+    <section class="month-head-card" aria-label="Resumen del mes bíblico">
+      <div id="todayBiblicalContent" class="month-head-content">
+        <div class="today-biblical-loading">Cargando inicio y fiestas del mes...</div>
       </div>
     </section>
 
@@ -79,8 +73,11 @@
         </div>
       </div>
     </section>
+      </div>
+    </section>
 
     <section class="card portal-calendar-card">
+      <section id="monthSources" class="verse-group month-sources" aria-live="polite" hidden></section>
       <div class="section-head portal-calendar-head">
         <div>
           <span class="portal-section-kicker">Calendario</span>
@@ -115,6 +112,7 @@
           </div>
 
           <div id="calendarGrid" class="calendar-grid"></div>
+          <section id="selectedDayEvents" class="verse-group selected-day-events" aria-live="polite" hidden></section>
       </div>
 
   <div class="calendar-legend">
@@ -210,6 +208,7 @@
 
   <div id="calendarHoverCard" class="calendar-hover-card-simple"></div>
 
-  <script src="/static/js/app.js?v=14"></script>
+  <script src="/static/js/day-panels.js?v=2"></script>
+  <script src="/static/js/app.js?v=19"></script>
 </body>
 </html>

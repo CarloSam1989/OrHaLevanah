@@ -24,7 +24,7 @@ func TestConfirmedAvivMakesJulyTheFifthMonth(t *testing.T) {
 	}
 
 	now := time.Date(2026, time.July, 18, 12, 0, 0, 0, loc)
-	if got, want := EstimateBiblicalYearStart(now).Format("2006-01-02"), "2026-03-19"; got != want {
+	if got, want := EstimateBiblicalYearStart(now).Format("2006-01-02"), "2026-03-20"; got != want {
 		t.Fatalf("year start = %s, want %s", got, want)
 	}
 	if got, want := GetCurrentBiblicalMonthAt(now), 5; got != want {

@@ -32,6 +32,37 @@
     <main class="main-content">
       <!-- INICIO -->
       <section id="view-inicio" class="view active">
+        <div class="today-compass-row">
+        <section id="currentDaySummary" class="card current-day-summary" aria-live="polite">Cargando información de hoy…</section>
+        <section class="card compass-card" aria-labelledby="compassTitle">
+          <div class="card-title-row">
+            <h3 id="compassTitle">Brújula hacia Jerusalén</h3>
+            <span class="pill">Dirección de oración</span>
+          </div>
+          <div class="compass-layout">
+            <div class="compass-dial" aria-hidden="true">
+              <span class="compass-north">N</span>
+              <span class="compass-east">E</span>
+              <span class="compass-south">S</span>
+              <span class="compass-west">O</span>
+              <div id="jerusalemCompassNeedle" class="compass-needle">
+                <span class="compass-needle-center"></span>
+              </div>
+            </div>
+            <div class="compass-info">
+              <strong id="jerusalemCompassBearing" class="compass-bearing">--°</strong>
+              <p id="jerusalemCompassStatus" class="compass-status" aria-live="polite">
+                Activa la ubicación para calcular la dirección desde donde estás.
+              </p>
+              <p id="jerusalemCompassDistance" class="compass-distance"></p>
+              <button id="startJerusalemCompass" class="action-btn compass-action" type="button">
+                Usar mi ubicación
+              </button>
+            </div>
+          </div>
+          <p class="compass-note">Mantén el teléfono en vertical para orientar la flecha. La ubicación se usa solo en este dispositivo y no se envía al servidor.</p>
+        </section>
+        </div>
         <div class="hero-card hero-card-logo">
           <div class="hero-badge">Portal Bíblico</div>
 
@@ -80,6 +111,8 @@
         </div>
 
         <div class="card quick-actions">
+          <button id="showMonthSources" class="action-btn secondary" type="button">Cabeza de mes · Ver fuentes</button>
+          <section id="currentMonthSources" class="month-sources" aria-live="polite" hidden></section>
           <button class="action-btn" data-go-view="hoy">Ver detalle de hoy</button>
           <button class="action-btn secondary" data-go-view="calendario">Abrir calendario</button>
         </div>
@@ -238,6 +271,7 @@
             </div>
           </div>
         </div>
+        <section id="monthSources" class="card month-sources" aria-live="polite" hidden></section>
       </section>
 
       <!-- FIESTAS -->
@@ -304,6 +338,7 @@
     </nav>
   </div>
 
+  <script src="day-panels.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

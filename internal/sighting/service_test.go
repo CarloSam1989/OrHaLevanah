@@ -23,3 +23,12 @@ func TestParseRejectsUnconfirmedReport(t *testing.T) {
 		t.Fatalf("expected no-confirmation error, got %v", err)
 	}
 }
+
+func TestParseRejectsGlobalConfirmationAfterUnconfirmedIsraelBlock(t *testing.T) {
+	body := `<h2>Israel-Based Observation</h2><strong>NO REPORTS</strong><p>August 13, 2026</p>
+		<h2>Global Observation</h2><strong>CONFIRMED</strong><p>August 13, 2026</p>`
+	_, err := parseConfirmedIsraelReport(body, "https://example.test", time.Now())
+	if err == nil || !strings.Contains(err.Error(), "no confirmed") {
+		t.Fatalf("expected global report to be rejected for Israel, got %v", err)
+	}
+}

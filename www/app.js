@@ -27,7 +27,8 @@ const state = {
   todayPayload: null,
   todayFeastsPayload: null,
   monthPayload: null,
-  selectedDatePayload: null
+  selectedDatePayload: null,
+  lastTodayDate: null
 };
 
 async function fetchJson(url) {
@@ -305,7 +306,7 @@ function buildCompactDayNote(data) {
   return `${biblicalText} · ${afterSunsetText}`;
 }
 
-function fillTodayUI(todayData, monthData) {
+function fillTodayUI(todayData, monthData, localCivilDate) {
   const merged = { ...(monthData || {}), ...(todayData || {}) };
 
   const inicioCivilDate = document.getElementById("inicioCivilDate");
@@ -320,13 +321,13 @@ function fillTodayUI(todayData, monthData) {
   const hoySunsetTime = document.getElementById("hoySunsetTime");
   const hoyDayNote = document.getElementById("hoyDayNote");
 
-  if (inicioCivilDate) inicioCivilDate.textContent = safeText(merged?.civil_date, "Sin fecha");
+  if (inicioCivilDate) inicioCivilDate.textContent = DayPanels.dateLabel(localCivilDate);
   if (inicioBiblicalDate) inicioBiblicalDate.textContent = formatBiblicalDate(merged);
   if (inicioJerusalemTime) inicioJerusalemTime.textContent = safeText(merged?.jerusalem_time, "No disponible");
   if (inicioSunset) inicioSunset.textContent = safeText(merged?.sunset_time, "No disponible");
   if (inicioDayNote) inicioDayNote.textContent = buildCompactDayNote(merged);
 
-  if (hoyCivilDate) hoyCivilDate.textContent = safeText(merged?.civil_date, "Sin fecha");
+  if (hoyCivilDate) hoyCivilDate.textContent = DayPanels.dateLabel(localCivilDate);
   if (hoyBiblicalDate) hoyBiblicalDate.textContent = formatBiblicalDate(merged);
   if (hoyJerusalemTime) hoyJerusalemTime.textContent = safeText(merged?.jerusalem_time, "No disponible");
   if (hoySunsetTime) hoySunsetTime.textContent = safeText(merged?.sunset_time, "No disponible");
@@ -351,7 +352,8 @@ function fillSelectedExtraUI(data) {
     selectedMonthStart.textContent = safeText(data?.month_start, "-");
   }
   if (selectedNextMonthStart) {
-    selectedNextMonthStart.textContent = safeText(data?.next_month_start, "-");
+    const nasaEstimated = data?.nasa_forecast?.possible_rosh_chodesh === data?.next_month_start;
+    selectedNextMonthStart.textContent = `${safeText(data?.next_month_start, "-")}${nasaEstimated ? " · posible NASA/JPL" : ""}`;
   }
   if (selectedAfterSunset) {
     selectedAfterSunset.textContent = getAfterSunsetText(data?.after_sunset);
@@ -435,7 +437,7 @@ function renderCalendar() {
 
   const firstDay = new Date(year, month, 1).getDay();
   const lastDate = new Date(year, month + 1, 0).getDate();
-  const todayString = state.todayPayload?.civil_date || state.monthPayload?.civil_date || formatDateToYMD(new Date());
+  const todayString = formatDateToYMD(new Date());
   const monthStartYmd = state.monthPayload?.month_start || null;
   const nextMonthStartYmd = state.monthPayload?.next_month_start || null;
 
@@ -518,23 +520,30 @@ function renderCalendar() {
   }
 }
 
-async function loadTodayData() {
+let todayUpdate = null;
+function loadTodayData() {
+  if (!todayUpdate) todayUpdate = updateTodayData().finally(() => { todayUpdate = null; });
+  return todayUpdate;
+}
+
+async function updateTodayData() {
   try {
-    const [todayPayload, monthPayload, feastsPayload] = await Promise.all([
-      getTodayBiblical(),
+    const [monthPayload, feastsPayload] = await Promise.all([
       getMonthBiblical(),
       getFeastsJerusalem().catch(() => null)
     ]);
 
-    const todayData = todayPayload?.data || {};
+    const todayData = monthPayload?.data || {};
     const monthData = monthPayload?.data || {};
+    const localCivilDate = formatDateToYMD(new Date());
 
     state.todayPayload = todayData;
     state.monthPayload = monthData;
 
-    fillTodayUI(todayData, monthData);
+    fillTodayUI(todayData, monthData, localCivilDate);
+    DayPanels.today(document.getElementById("currentDaySummary"), monthData, feastsPayload?.data || null, localCivilDate);
 
-    const todayDate = todayData.civil_date || monthData.civil_date || formatDateToYMD(new Date());
+    const todayDate = localCivilDate;
 
     let feastData = feastsPayload?.data || null;
 
@@ -571,10 +580,15 @@ async function loadTodayData() {
       "No se encontraron próximas fiestas."
     );
 
-    state.selectedDate = todayDate;
+    if (!state.selectedDate || state.selectedDate === state.lastTodayDate) {
+      state.selectedDate = todayDate;
+      state.currentMonthDate = parseYmdToLocalDate(todayDate);
+    }
+    state.lastTodayDate = todayDate;
     renderCalendar();
   } catch (error) {
     console.error("Error cargando hoy:", error);
+    document.getElementById("currentDaySummary").textContent = "No se pudo actualizar la información de hoy.";
 
     [
       "inicioCivilDate", "inicioBiblicalDate", "inicioJerusalemTime", "inicioSunset",
@@ -596,7 +610,9 @@ async function loadTodayData() {
   }
 }
 
+let selectedRequest = 0;
 async function loadSelectedDate(dateString) {
+  const request = ++selectedRequest;
   const selectedCivilDate = document.getElementById("selectedCivilDate");
   const selectedBiblicalDate = document.getElementById("selectedBiblicalDate");
   const selectedJerusalemTime = document.getElementById("selectedJerusalemTime");
@@ -609,11 +625,13 @@ async function loadSelectedDate(dateString) {
   if (selectedSunsetTime) selectedSunsetTime.textContent = "Cargando...";
   if (selectedDayNote) selectedDayNote.textContent = "Consultando detalle del día...";
 
+  DayPanels.sources(document.getElementById("monthSources"), dateString, API_BASE);
   fillSelectedExtraUI(null);
   renderFeastList("selectedCurrentFeasts", [], "Consultando si es fiesta o Shabat...");
 
   try {
     const payload = await getBiblicalByDate(dateString);
+    if (request !== selectedRequest) return;
     const data = payload?.data || {};
 
     state.selectedDatePayload = data;
@@ -641,6 +659,7 @@ async function loadSelectedDate(dateString) {
 
     renderCalendar();
   } catch (error) {
+    if (request !== selectedRequest) return;
     console.error("Error cargando fecha seleccionada:", error);
 
     if (selectedBiblicalDate) selectedBiblicalDate.textContent = "No disponible";
@@ -661,7 +680,141 @@ async function loadSelectedDate(dateString) {
   }
 }
 
+function initJerusalemCompass() {
+  const button = document.getElementById("startJerusalemCompass");
+  const needle = document.getElementById("jerusalemCompassNeedle");
+  const bearingLabel = document.getElementById("jerusalemCompassBearing");
+  const status = document.getElementById("jerusalemCompassStatus");
+  const distanceLabel = document.getElementById("jerusalemCompassDistance");
+  if (!button || !needle || !bearingLabel || !status || !distanceLabel) return;
+
+  const jerusalem = { latitude: 31.7683, longitude: 35.2137 };
+  let heading = null;
+  let headingTimer = null;
+  let orientationListener = null;
+
+  const normalize = (degrees) => (degrees % 360 + 360) % 360;
+  const updateNeedle = (bearing) => {
+    needle.style.transform = `rotate(${normalize(bearing - (heading ?? 0))}deg)`;
+    bearingLabel.textContent = `${Math.round(bearing)}°`;
+  };
+
+  button.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      status.textContent = "La ubicación no está disponible en este navegador. Comprueba que estás usando HTTPS.";
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Buscando ubicación…";
+    status.textContent = "Solicitando permiso de ubicación…";
+    if (orientationListener) {
+      window.removeEventListener("deviceorientation", orientationListener);
+      window.removeEventListener("deviceorientationabsolute", orientationListener);
+      orientationListener = null;
+    }
+    heading = null;
+    window.clearTimeout(headingTimer);
+    needle.style.transform = "rotate(0deg)";
+    bearingLabel.textContent = "--°";
+    distanceLabel.textContent = "";
+
+    let orientationPermission = Promise.resolve(true);
+    try {
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        orientationPermission = DeviceOrientationEvent.requestPermission()
+          .then((permission) => permission === "granted")
+          .catch(() => false);
+      }
+    } catch {
+      orientationPermission = Promise.resolve(false);
+    }
+
+    try {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        const lat1 = latitude * Math.PI / 180;
+        const lat2 = jerusalem.latitude * Math.PI / 180;
+        const deltaLongitude = (jerusalem.longitude - longitude) * Math.PI / 180;
+        const y = Math.sin(deltaLongitude) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) -
+          Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLongitude);
+        const bearing = normalize(Math.atan2(y, x) * 180 / Math.PI);
+        const earthRadiusKm = 6371;
+        const deltaLatitude = lat2 - lat1;
+        const haversine = Math.sin(deltaLatitude / 2) ** 2 +
+          Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLongitude / 2) ** 2;
+        const distance = 2 * earthRadiusKm * Math.atan2(
+          Math.sqrt(haversine),
+          Math.sqrt(1 - haversine)
+        );
+
+        updateNeedle(bearing);
+        distanceLabel.textContent = `Distancia aproximada: ${Math.round(distance).toLocaleString("es")} km`;
+        button.disabled = false;
+        button.textContent = "Actualizar ubicación";
+
+        const permissionGranted = await orientationPermission;
+        if (!permissionGranted) {
+          status.textContent = "Rumbo calculado desde el norte. No se autorizó el sensor de orientación.";
+          return;
+        }
+
+        const orientationEvent = "ondeviceorientationabsolute" in window
+          ? "deviceorientationabsolute"
+          : "deviceorientation";
+        orientationListener = (event) => {
+          let currentHeading = null;
+          if (typeof event.webkitCompassHeading === "number") {
+            currentHeading = event.webkitCompassHeading;
+          } else if (
+            typeof event.alpha === "number" &&
+            (event.absolute === true || event.type === "deviceorientationabsolute")
+          ) {
+            currentHeading = 360 - event.alpha;
+          }
+          if (currentHeading === null) return;
+
+          heading = normalize(currentHeading);
+          updateNeedle(bearing);
+          status.textContent = "Gira el teléfono hasta que la flecha apunte hacia Jerusalén.";
+          window.clearTimeout(headingTimer);
+        };
+        window.addEventListener(orientationEvent, orientationListener);
+        status.textContent = "Ubicación lista; buscando la orientación del teléfono…";
+        window.clearTimeout(headingTimer);
+        headingTimer = window.setTimeout(() => {
+          if (heading === null) {
+            status.textContent = "El sensor no está disponible; la flecha muestra el rumbo desde el norte.";
+          }
+        }, 4000);
+      }, (error) => {
+        const messages = {
+          1: "Permiso de ubicación denegado. Puedes activarlo en los ajustes del navegador.",
+          2: "No se pudo determinar tu ubicación. Comprueba la señal GPS e inténtalo de nuevo.",
+          3: "La ubicación tardó demasiado. Inténtalo de nuevo."
+        };
+        status.textContent = messages[error.code] || "No se pudo obtener la ubicación.";
+        button.disabled = false;
+        button.textContent = "Intentar de nuevo";
+      }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 });
+    } catch (error) {
+      console.error("No se pudo iniciar la ubicación de la brújula:", error);
+      status.textContent = "No se pudo iniciar la solicitud de ubicación. Revisa los permisos y que la conexión sea segura.";
+      button.disabled = false;
+      button.textContent = "Intentar de nuevo";
+    }
+  });
+}
+
 function bindEvents() {
+  initJerusalemCompass();
+  document.getElementById("showMonthSources")?.addEventListener("click", () => {
+    DayPanels.sources(document.getElementById("currentMonthSources"), state.monthPayload?.month_start, API_BASE, true);
+  });
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const view = btn.getAttribute("data-view");
@@ -682,6 +835,7 @@ function bindEvents() {
   const goTodayBtn = document.getElementById("goTodayBtn");
 
   prevMonthBtn?.addEventListener("click", () => {
+    DayPanels.sources(document.getElementById("monthSources"), null);
     state.currentMonthDate = new Date(
       state.currentMonthDate.getFullYear(),
       state.currentMonthDate.getMonth() - 1,
@@ -691,6 +845,7 @@ function bindEvents() {
   });
 
   nextMonthBtn?.addEventListener("click", () => {
+    DayPanels.sources(document.getElementById("monthSources"), null);
     state.currentMonthDate = new Date(
       state.currentMonthDate.getFullYear(),
       state.currentMonthDate.getMonth() + 1,
@@ -705,7 +860,9 @@ function bindEvents() {
   });
 
   goTodayBtn?.addEventListener("click", async () => {
-    const now = new Date();
+    await loadTodayData();
+    const now = parseYmdToLocalDate(state.todayPayload?.civil_date);
+    if (!now) return;
     state.currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
     state.selectedDate = state.todayPayload?.civil_date || state.monthPayload?.civil_date || formatDateToYMD(now);
     renderCalendar();
@@ -715,6 +872,8 @@ function bindEvents() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  setInterval(() => { if (!document.hidden) loadTodayData(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadTodayData(); });
   bindEvents();
   setView("inicio");
   renderCalendar();

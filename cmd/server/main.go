@@ -42,15 +42,18 @@ func main() {
 	fs := http.FileServer(http.Dir("./web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Página principal
+	// Página pública de la comunidad y aplicación existente.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Solo responde index en la raíz exacta
-		if r.URL.Path != "/" {
+		switch r.URL.Path {
+		case "/":
+			http.ServeFile(w, r, "./web/templates/community.html")
+		case "/app":
+			http.Redirect(w, r, "/app/", http.StatusMovedPermanently)
+		case "/app/":
+			http.ServeFile(w, r, "./web/templates/index.html")
+		default:
 			http.NotFound(w, r)
-			return
 		}
-
-		http.ServeFile(w, r, "./web/templates/index.html")
 	})
 
 	// Registrar rutas API sobre el mux global temporalmente

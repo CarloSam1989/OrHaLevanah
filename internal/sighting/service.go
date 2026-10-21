@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -16,18 +15,20 @@ import (
 )
 
 const (
-	defaultSourceURL = "https://renewedmoon.com/"
+	defaultSourceURL = "https://t.me/s/devorahsdatetree"
 	defaultCachePath = "data/moon_sightings.json"
 )
 
 type Report struct {
-	Date       string    `json:"date"`
-	Country    string    `json:"country"`
-	Location   string    `json:"location,omitempty"`
-	Status     string    `json:"status"`
-	SourceName string    `json:"source_name"`
-	SourceURL  string    `json:"source_url"`
-	CheckedAt  time.Time `json:"checked_at"`
+	Date               string    `json:"date"`
+	Country            string    `json:"country"`
+	Location           string    `json:"location,omitempty"`
+	Status             string    `json:"status"`
+	SourceName         string    `json:"source_name"`
+	SourceURL          string    `json:"source_url"`
+	BiblicalMonth      int       `json:"biblical_month,omitempty"`
+	ConfirmationMethod string    `json:"confirmation_method,omitempty"`
+	CheckedAt          time.Time `json:"checked_at"`
 }
 
 type cacheFile struct {
@@ -38,9 +39,19 @@ var (
 	mu          sync.RWMutex
 	lastAttempt time.Time
 	refreshTTL  = 15 * time.Minute
-	datePattern = regexp.MustCompile(`(?is)Israel-Based Observation.*?CONFIRMED.*?(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})`)
+	datePattern = regexp.MustCompile(`(?i)CONFIRMED\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})`)
 	tagPattern  = regexp.MustCompile(`<[^>]+>`)
 )
+
+var israelSectionEndMarkers = []string{
+	"Global-Based Observation",
+	"Global Observation",
+	"Question of the Day",
+	"Current Report",
+	"Moon Image Gallery",
+	"Visibility Map",
+	"Next Renewed Moon",
+}
 
 func sourceURL() string {
 	if value := strings.TrimSpace(os.Getenv("MOON_SIGHTING_SOURCE_URL")); value != "" {
@@ -91,24 +102,9 @@ func RefreshIfStale() error {
 	}
 	req.Header.Set("User-Agent", "Or-HaLevanah/1.0 moon-sighting-checker")
 
-	response, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("moon sighting source returned HTTP %d", response.StatusCode)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(response.Body, 2<<20))
-	if err != nil {
-		return err
-	}
-	report, err := parseConfirmedIsraelReport(string(body), sourceURL(), time.Now().UTC())
-	if err != nil {
-		return err
-	}
-	return saveReport(report)
+	err = refreshFromDevorah(client, req)
+	if err != nil { setEvidenceState("partial") }
+	return err
 }
 
 // StartAutoRefresh keeps checking the external source while the server runs.
@@ -132,7 +128,8 @@ func StartAutoRefresh(stop <-chan struct{}) {
 func parseConfirmedIsraelReport(body, url string, checkedAt time.Time) (Report, error) {
 	plain := html.UnescapeString(tagPattern.ReplaceAllString(body, " "))
 	plain = strings.Join(strings.Fields(plain), " ")
-	match := datePattern.FindStringSubmatch(plain)
+	section := israelObservationSection(plain)
+	match := datePattern.FindStringSubmatch(section)
 	if len(match) != 4 {
 		return Report{}, errors.New("no confirmed Israel sighting found in source")
 	}
@@ -151,6 +148,25 @@ func parseConfirmedIsraelReport(body, url string, checkedAt time.Time) (Report, 
 	}, nil
 }
 
+// israelObservationSection prevents a global confirmation elsewhere on the
+// page from being attributed to Israel. Only the contents of the explicit
+// Israel-based summary block are eligible to confirm a sighting.
+func israelObservationSection(plain string) string {
+	const heading = "Israel-Based Observation"
+	start := strings.Index(plain, heading)
+	if start < 0 {
+		return ""
+	}
+	section := plain[start+len(heading):]
+	end := len(section)
+	for _, marker := range israelSectionEndMarkers {
+		if index := strings.Index(section, marker); index >= 0 && index < end {
+			end = index
+		}
+	}
+	return section[:end]
+}
+
 func saveReport(report Report) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -159,9 +175,26 @@ func saveReport(report Report) error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
+	if report.BiblicalMonth > 1 {
+		currentDate, currentErr := time.Parse("2006-01-02", report.Date)
+		for _, previous := range reports {
+			if previous.BiblicalMonth != report.BiblicalMonth-1 || !strings.EqualFold(previous.Country, "Israel") {
+				continue
+			}
+			previousDate, previousErr := time.Parse("2006-01-02", previous.Date)
+			if currentErr == nil && previousErr == nil {
+				days := int(currentDate.Sub(previousDate).Hours() / 24)
+				if days < 28 || days > 32 {
+					return fmt.Errorf("biblical month %d report is %d days after month %d; refusing inconsistent sequence", report.BiblicalMonth, days, previous.BiblicalMonth)
+				}
+			}
+		}
+	}
 	found := false
 	for i := range reports {
-		if reports[i].Date == report.Date && reports[i].Country == report.Country {
+		sameDate := reports[i].Date == report.Date
+		sameBiblicalMonth := report.BiblicalMonth > 0 && reports[i].BiblicalMonth == report.BiblicalMonth && reportYear(reports[i].Date) == reportYear(report.Date)
+		if strings.EqualFold(reports[i].Country, report.Country) && (sameDate || sameBiblicalMonth) {
 			if report.Location == "" {
 				report.Location = reports[i].Location
 			}
@@ -180,6 +213,14 @@ func saveReport(report Report) error {
 		return err
 	}
 	return os.WriteFile(cachePath(), append(content, '\n'), 0644)
+}
+
+func reportYear(value string) int {
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return 0
+	}
+	return parsed.Year()
 }
 
 func LatestConfirmedOnOrBefore(day time.Time, maxAgeDays int) (time.Time, Report, bool) {
@@ -227,4 +268,21 @@ func FirstConfirmedBetween(start, end time.Time) (time.Time, Report, bool) {
 		}
 	}
 	return first, selected, !first.IsZero()
+}
+
+func ConfirmedBiblicalMonthStart(gregorianYear, biblicalMonth int, loc *time.Location) (time.Time, Report, bool) {
+	reports, err := LoadReports()
+	if err != nil {
+		return time.Time{}, Report{}, false
+	}
+	for _, report := range reports {
+		if report.Status != "confirmed" || !strings.EqualFold(report.Country, "Israel") || report.BiblicalMonth != biblicalMonth {
+			continue
+		}
+		parsed, err := time.ParseInLocation("2006-01-02", report.Date, loc)
+		if err == nil && parsed.Year() == gregorianYear {
+			return parsed, report, true
+		}
+	}
+	return time.Time{}, Report{}, false
 }

@@ -1,13 +1,92 @@
 {
   "reports": [
     {
+      "date": "2026-01-20",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/11th-biblical-month-crescent-moon-report",
+      "biblical_month": 11,
+      "confirmation_method": "israel_eyewitness",
+      "checked_at": "2026-09-12T20:38:20.8853969Z"
+    },
+    {
+      "date": "2026-02-18",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/12th-biblical-month-crescent-moon-report",
+      "biblical_month": 12,
+      "confirmation_method": "israel_eyewitness",
+      "checked_at": "2026-09-13T18:08:19.885473Z"
+    },
+    {
+      "date": "2026-03-20",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/1st-biblical-month-crescent-moon-report",
+      "biblical_month": 1,
+      "confirmation_method": "israel_eyewitness",
+      "checked_at": "2026-10-05T21:40:56.2538284Z"
+    },
+    {
+      "date": "2026-04-18",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/2nd-biblical-month-crescent-moon-report",
+      "biblical_month": 2,
+      "confirmation_method": "israel_eyewitness",
+      "checked_at": "2026-10-21T13:04:41.4008764Z"
+    },
+    {
+      "date": "2026-05-18",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/3rd-month-crescent-moon-report",
+      "biblical_month": 3,
+      "confirmation_method": "day_30_declaration",
+      "checked_at": "2026-08-15T23:25:19Z"
+    },
+    {
+      "date": "2026-06-16",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/4th-biblical-month-26-report",
+      "biblical_month": 4,
+      "confirmation_method": "israel_eyewitness",
+      "checked_at": "2026-10-21T13:04:43.1144172Z"
+    },
+    {
       "date": "2026-07-15",
       "country": "Israel",
-      "location": "Zebulun Valley",
+      "location": "Israel",
       "status": "confirmed",
-      "source_name": "Renewed Moon",
-      "source_url": "https://renewedmoon.com/",
-      "checked_at": "2026-07-19T00:46:34.6852205Z"
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/5-2026-crescent-moon-report",
+      "biblical_month": 5,
+      "confirmation_method": "israel_eyewitness",
+      "checked_at": "2026-10-21T13:04:44.145728Z"
+    },
+    {
+      "date": "2026-08-14",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/6th-biblical-month-crescent-moon-report-2026",
+      "biblical_month": 6,
+      "confirmation_method": "israel_eyewitness",
+      "checked_at": "2026-10-21T13:04:45.2657107Z"
     }
   ]
 }

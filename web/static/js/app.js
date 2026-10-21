@@ -1,14 +1,9 @@
-async function fetchJson(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Error ${response.status}: no se pudo cargar ${url}`);
-  }
-  return response.json();
-}
+const fetchJson = DayPanels.json;
 
 const calendarState = {
   currentDate: new Date(),
   selectedDate: null,
+  lastLocalDate: null,
   feastData: null,
   biblicalMonthInfo: null,
   biblicalCalendarDays: new Map(),
@@ -724,135 +719,39 @@ function getTodayShabbatState(civilDate, afterSunset) {
 }
 
 function buildTodayBiblicalHtml(todayData, feastData, monthData) {
-  const civilDate = feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "-";
-  const biblicalDate = feastData?.biblical_date || todayData?.biblical_date || "-";
   const biblicalMonth = feastData?.biblical_month ?? todayData?.biblical_month ?? "-";
-  const biblicalDay = feastData?.biblical_day ?? todayData?.biblical_day ?? "-";
-  const jerusalemTime = monthData?.jerusalem_time || todayData?.jerusalem_time || "-";
-  const sunsetTime = monthData?.sunset_time || todayData?.sunset_time || "-";
-  const afterSunset = monthData?.after_sunset ?? todayData?.after_sunset ?? false;
-  const currentFeasts = feastData?.current_feasts || [];
-  const omer = feastData?.omer || null;
-  const dayNote = feastData?.day_note || todayData?.day_note || monthData?.day_note || "";
-
-  const shabbatState = getTodayShabbatState(civilDate, afterSunset);
   const biblicalMonthName =
     typeof biblicalMonth === "number" ? getBiblicalMonthName(biblicalMonth) : "-";
-  const biblicalDisplay =
-    biblicalDay !== "-" && biblicalMonthName !== "-"
-      ? `${biblicalDay} de ${biblicalMonthName}`
-      : "-";
-
-  const badges = [];
-
-  if (shabbatState.label) {
-    badges.push(`<span class="today-status-badge is-shabbat">${shabbatState.label}</span>`);
-  }
-
-  if (monthData?.month_start === civilDate) {
-    badges.push(`<span class="today-status-badge is-new-month">🌒 Cabeza del mes bíblico</span>`);
-  }
-
-  if (currentFeasts.length > 0) {
-    currentFeasts.forEach((feast) => {
-      badges.push(`
-        <span class="today-status-badge is-feast">
-          ${getFeastIcon(feast.name)} ${feast.name}
-        </span>
-      `);
-    });
-  }
-
-  if (omer?.is_omer_counting && omer?.omer_day_today) {
-    badges.push(`
-      <span class="today-status-badge is-omer">
-        🌾 Omer día ${omer.omer_day_today}
-      </span>
-    `);
-  }
-
-  if (badges.length === 0) {
-    badges.push(`<span class="today-status-badge is-common">📖 Día común</span>`);
-  }
-
-  let summaryTitle = "Día bíblico en curso";
-  let summaryText = "Hoy no hay una fiesta bíblica activa registrada para este momento.";
-
-  if (currentFeasts.length > 0) {
-    summaryTitle = currentFeasts.map((feast) => feast.name).join(" · ");
-    summaryText = "Hoy hay una fiesta bíblica activa según el cálculo actual basado en Jerusalén.";
-  } else if (shabbatState.active) {
-    summaryTitle = "Shabat";
-    summaryText = "Ahora mismo estás dentro de la ventana bíblica de Shabat.";
-  } else if (shabbatState.upcoming) {
-    summaryTitle = "Preparación para Shabat";
-    summaryText = "Hoy todavía no ha comenzado Shabat, pero entra al atardecer.";
-  }
+  const monthFeasts = (feastData?.all_feasts || []).filter(
+    (feast) => Number(feast?.biblical_month) === Number(biblicalMonth)
+  );
+  const feastsHtml = monthFeasts.length
+    ? monthFeasts.map((feast) => `
+        <article class="month-feast-item">
+          <span class="month-feast-icon">${getFeastIcon(feast.name)}</span>
+          <div>
+            <strong>${escapeHtml(feast.name)}</strong>
+            <span>${escapeHtml(feast.gregorian_start_date || feast.gregorian_date || "-")}</span>
+          </div>
+        </article>
+      `).join("")
+    : `<p class="month-feasts-empty">Este mes no contiene fiestas bíblicas señaladas.</p>`;
 
   return `
-    <div class="today-biblical-hero">
-      <div class="today-biblical-main">
-        <span class="today-biblical-kicker">Resumen del día</span>
-        <h3>${summaryTitle}</h3>
-        <p>${summaryText}</p>
-
-        <div class="today-biblical-badges">
-          ${badges.join("")}
+    <div class="month-head-grid">
+      <div class="month-start-block">
+        <span class="month-head-label">Inicio del mes</span>
+        <div class="month-start-title">
+          <h1>${escapeHtml(biblicalMonthName)}</h1>
         </div>
+        <strong class="month-start-date">${escapeHtml(monthData?.month_start || "-")}</strong>
+        <button id="showMonthSources" type="button">Cabeza de mes · Ver fuentes</button>
       </div>
 
-      <div class="today-biblical-side">
-        <div class="today-mini-card">
-          <span class="today-mini-label">Fecha civil</span>
-          <strong>${civilDate}</strong>
-        </div>
-
-        <div class="today-mini-card">
-          <span class="today-mini-label">Fecha bíblica (equivalencia civil)</span>
-          <strong>${biblicalDate}</strong>
-        </div>
-
-        <div class="today-mini-card">
-          <span class="today-mini-label">Fecha bíblica</span>
-          <strong>${biblicalDisplay}</strong>
-        </div>
-
-        <div class="today-mini-card">
-          <span class="today-mini-label">Jerusalén</span>
-          <strong id="todayJerusalemClock">${jerusalemTime}</strong>
-        </div>
+      <div class="month-feasts-block">
+        <span class="month-head-label">Fiestas del mes</span>
+        <div class="month-feasts-list">${feastsHtml}</div>
       </div>
-    </div>
-
-    <div class="today-biblical-grid">
-      <div class="today-info-box">
-        <span class="today-info-label">Atardecer en Jerusalén</span>
-        <strong>${sunsetTime}</strong>
-      </div>
-
-      <div class="today-info-box">
-        <span class="today-info-label">Después del atardecer</span>
-        <strong>${afterSunset ? "Sí" : "No"}</strong>
-      </div>
-
-      <div class="today-info-box">
-        <span class="today-info-label">Inicio del mes actual</span>
-        <strong>${monthData?.month_start || "-"}</strong>
-      </div>
-
-      <div class="today-info-box">
-        <span class="today-info-label">Próxima cabeza de mes</span>
-        <strong>${monthData?.next_month_start || "-"}</strong>
-        <small>${monthData?.nasa_forecast?.possible_rosh_chodesh ? "Posible · estimación NASA/JPL Horizons" : "Estimación astronómica local"}</small>
-      </div>
-    </div>
-
-    <div class="today-biblical-note">
-      <strong>Nota del día:</strong>
-      <span>
-        La fecha civil cambia a medianoche; la fecha bíblica cambia al atardecer en Jerusalén.
-        ${dayNote ? ` ${dayNote}` : ""}
-      </span>
     </div>
   `;
 }
@@ -861,23 +760,54 @@ async function loadTodayBiblicalPanel() {
   const panel = document.getElementById("todayBiblicalContent");
   if (!panel) return;
 
-  panel.innerHTML = `<div class="today-biblical-loading">Cargando resumen bíblico de hoy...</div>`;
+  panel.innerHTML = `<div class="today-biblical-loading">Cargando inicio y fiestas del mes...</div>`;
 
   try {
-    const [todayPayload, feastPayload, monthPayload] = await Promise.all([
-      fetchJson("/api/biblical/jerusalem/today"),
+    const localCivilDate = formatDateKey(new Date());
+    const previousLocalDate = calendarState.lastLocalDate;
+    const [feastPayload, monthPayload] = await Promise.all([
       fetchJson("/api/feasts/jerusalem"),
       fetchJson("/api/biblical/jerusalem/month"),
     ]);
 
-    const todayData = todayPayload?.data || {};
+    const followsLocalToday = !previousLocalDate || calendarState.selectedDate === previousLocalDate;
+    let localMonthChanged = false;
+    if (followsLocalToday) {
+      calendarState.selectedDate = localCivilDate;
+      if (!previousLocalDate || formatDateKey(calendarState.currentDate) === previousLocalDate) {
+        const localDate = normalizeDateInput(localCivilDate);
+        localMonthChanged = calendarState.currentDate.getMonth() !== localDate.getMonth() ||
+          calendarState.currentDate.getFullYear() !== localDate.getFullYear();
+        calendarState.currentDate = localDate;
+      }
+    }
+    calendarState.lastLocalDate = localCivilDate;
+
+    const todayData = monthPayload?.data || {};
     const feastData = feastPayload?.data || {};
     const monthData = monthPayload?.data || {};
 
+    const previousCivilDate = calendarState.feastData?.civil_date;
     calendarState.biblicalMonthInfo = monthData;
+    calendarState.feastData = feastData;
+    if (previousCivilDate && previousCivilDate !== feastData.civil_date) {
+      calendarState.biblicalCalendarDays.clear();
+      await loadBiblicalCalendarMonth(calendarState.currentDate);
+      renderCalendar(feastData);
+    }
+    if (localMonthChanged) {
+      calendarState.biblicalCalendarDays.clear();
+      await loadBiblicalCalendarMonth(calendarState.currentDate);
+      renderCalendar(feastData);
+    } else if (previousLocalDate !== localCivilDate) {
+      renderCalendar(feastData);
+    }
 
     panel.innerHTML = buildTodayBiblicalHtml(todayData, feastData, monthData);
-    startJerusalemClock(monthData?.jerusalem_time || todayData?.jerusalem_time || "");
+    DayPanels.today(document.getElementById("currentDaySummary"), monthData, feastData, localCivilDate);
+    document.getElementById("showMonthSources")?.addEventListener("click", () => {
+      DayPanels.sources(document.getElementById("monthSources"), monthData.month_start, "", true);
+    });
 
     const shabbatState = getTodayShabbatState(
       feastData?.civil_date || todayData?.civil_date || monthData?.civil_date,
@@ -909,11 +839,12 @@ async function loadTodayBiblicalPanel() {
 
   } catch (error) {
     console.error("Error cargando el panel Hoy bíblico:", error);
+    document.getElementById("currentDaySummary").textContent = "No se pudo actualizar la información de hoy.";
     panel.innerHTML = `
       <div class="today-biblical-error">
         No se pudo cargar el resumen bíblico de hoy.
         <br>
-        <small>${error.message}</small>
+        <small>${escapeHtml(error.message)}</small>
       </div>
     `;
 
@@ -1546,7 +1477,7 @@ function renderCalendar(data) {
           ${omerBand}
 
           <div class="calendar-day-number">
-            <div>${day}</div>
+            <div class="civil-day-number">${day}${isToday ? '<span class="today-badge">Hoy</span>' : ''}</div>
             ${
               biblicalDayForThisDate && biblicalMonthForThisDate
                 ? `<div class="biblical-day-label" title="${getBiblicalDayWindowLabel(dateObj)}">Al ocaso: Día ${biblicalDayForThisDate} mes ${biblicalMonthForThisDate}</div>`
@@ -1566,7 +1497,7 @@ function renderCalendar(data) {
             ${newMonthMarker}
           </div>
 
-          ${isSukkotDay ? `<div class="sukkot-day-label">⛺ Sucot</div>` : ""}
+          ${isSukkotDay ? `<div class="sukkot-day-label">⛺ ${feasts.map(f => DayPanels.feastProgress(f, dateKey)).find(Boolean)?.label || "Sucot"}</div>` : ""}
 
           <div class="calendar-day-note"></div>
         </div>
@@ -1579,11 +1510,19 @@ function renderCalendar(data) {
 
   // Click en día
   grid.querySelectorAll(".calendar-day[data-date]").forEach((el) => {
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    el.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); el.click(); }
+    });
     el.addEventListener("click", () => {
       const dateKey = el.getAttribute("data-date");
       calendarState.selectedDate = dateKey;
       renderCalendar(data);
-      renderDayDetail(dateKey, data);
+      renderDayDetail(dateKey, groupFeastsByVisibleDay(data));
+      const dayOfWeek = normalizeDateInput(dateKey).getDay();
+      DayPanels.dayEvents(document.getElementById("selectedDayEvents"), dateKey, groupFeastsByVisibleDay(data).get(dateKey) || [], getOmerDayForDate(dateKey), dayOfWeek === 5 ? "Shabat (desde el atardecer)" : dayOfWeek === 6 ? "Shabat (hasta el atardecer)" : "");
+      DayPanels.sources(document.getElementById("monthSources"), dateKey, "", getMonthStartType(dateKey) !== null);
     });
   });
 
@@ -1614,6 +1553,7 @@ function renderFeastsData(payload) {
 }
 
 async function loadFeasts() {
+  DayPanels.sources(document.getElementById("monthSources"), null);
   const summary = document.getElementById("feastsSummary");
   const detailPanel = document.getElementById("calendarDetailPanel");
   const grid = document.getElementById("calendarGrid");
@@ -1636,7 +1576,7 @@ async function loadFeasts() {
       loadBiblicalMonthInfo(),
     ]);
 
-    const civilDate = feastPayload?.data?.civil_date;
+    const civilDate = formatDateKey(new Date());
     calendarState.currentDate = normalizeDateInput(civilDate) || new Date();
     calendarState.selectedDate = civilDate || null;
 
@@ -1661,6 +1601,8 @@ async function loadFeasts() {
 
 async function moveCalendarMonth(offset) {
   if (!calendarState.feastData) return;
+  document.getElementById("selectedDayEvents").hidden = true;
+  DayPanels.sources(document.getElementById("monthSources"), null);
 
   calendarState.currentDate = new Date(
     calendarState.currentDate.getFullYear(),
@@ -1689,7 +1631,138 @@ function setupDetailToggle() {
   });
 }
 
+function initJerusalemCompass() {
+  const button = document.getElementById("startJerusalemCompass");
+  const needle = document.getElementById("jerusalemCompassNeedle");
+  const bearingLabel = document.getElementById("jerusalemCompassBearing");
+  const status = document.getElementById("jerusalemCompassStatus");
+  const distanceLabel = document.getElementById("jerusalemCompassDistance");
+  if (!button || !needle || !bearingLabel || !status || !distanceLabel) return;
+
+  const jerusalem = { latitude: 31.7683, longitude: 35.2137 };
+  let heading = null;
+  let headingTimer = null;
+  let orientationListener = null;
+
+  const normalize = (degrees) => (degrees % 360 + 360) % 360;
+  const updateNeedle = (bearing) => {
+    needle.style.transform = `rotate(${normalize(bearing - (heading ?? 0))}deg)`;
+    bearingLabel.textContent = `${Math.round(bearing)}°`;
+  };
+
+  button.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      status.textContent = "La ubicación no está disponible en este navegador. Comprueba que estás usando HTTPS.";
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Buscando ubicación…";
+    status.textContent = "Solicitando permiso de ubicación…";
+    if (orientationListener) {
+      window.removeEventListener("deviceorientation", orientationListener);
+      window.removeEventListener("deviceorientationabsolute", orientationListener);
+      orientationListener = null;
+    }
+    heading = null;
+    window.clearTimeout(headingTimer);
+    needle.style.transform = "rotate(0deg)";
+    bearingLabel.textContent = "--°";
+    distanceLabel.textContent = "";
+
+    let orientationPermission = Promise.resolve(true);
+    try {
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        orientationPermission = DeviceOrientationEvent.requestPermission()
+          .then((permission) => permission === "granted")
+          .catch(() => false);
+      }
+    } catch {
+      orientationPermission = Promise.resolve(false);
+    }
+
+    try {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        const lat1 = latitude * Math.PI / 180;
+        const lat2 = jerusalem.latitude * Math.PI / 180;
+        const deltaLongitude = (jerusalem.longitude - longitude) * Math.PI / 180;
+        const y = Math.sin(deltaLongitude) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) -
+          Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLongitude);
+        const bearing = normalize(Math.atan2(y, x) * 180 / Math.PI);
+        const earthRadiusKm = 6371;
+        const deltaLatitude = lat2 - lat1;
+        const haversine = Math.sin(deltaLatitude / 2) ** 2 +
+          Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLongitude / 2) ** 2;
+        const distance = 2 * earthRadiusKm * Math.atan2(
+          Math.sqrt(haversine),
+          Math.sqrt(1 - haversine)
+        );
+
+        updateNeedle(bearing);
+        distanceLabel.textContent = `Distancia aproximada: ${Math.round(distance).toLocaleString("es")} km`;
+        button.disabled = false;
+        button.textContent = "Actualizar ubicación";
+
+        const permissionGranted = await orientationPermission;
+        if (!permissionGranted) {
+          status.textContent = "Rumbo calculado desde el norte. No se autorizó el sensor de orientación.";
+          return;
+        }
+
+        const orientationEvent = "ondeviceorientationabsolute" in window
+          ? "deviceorientationabsolute"
+          : "deviceorientation";
+        orientationListener = (event) => {
+          let currentHeading = null;
+          if (typeof event.webkitCompassHeading === "number") {
+            currentHeading = event.webkitCompassHeading;
+          } else if (
+            typeof event.alpha === "number" &&
+            (event.absolute === true || event.type === "deviceorientationabsolute")
+          ) {
+            currentHeading = 360 - event.alpha;
+          }
+          if (currentHeading === null) return;
+
+          heading = normalize(currentHeading);
+          updateNeedle(bearing);
+          status.textContent = "Gira el teléfono hasta que la flecha apunte hacia Jerusalén.";
+          window.clearTimeout(headingTimer);
+        };
+        window.addEventListener(orientationEvent, orientationListener);
+        status.textContent = "Ubicación lista; buscando la orientación del teléfono…";
+        window.clearTimeout(headingTimer);
+        headingTimer = window.setTimeout(() => {
+          if (heading === null) {
+            status.textContent = "El sensor no está disponible; la flecha muestra el rumbo desde el norte.";
+          }
+        }, 4000);
+      }, (error) => {
+        const messages = {
+          1: "Permiso de ubicación denegado. Puedes activarlo en los ajustes del navegador.",
+          2: "No se pudo determinar tu ubicación. Comprueba la señal GPS e inténtalo de nuevo.",
+          3: "La ubicación tardó demasiado. Inténtalo de nuevo."
+        };
+        status.textContent = messages[error.code] || "No se pudo obtener la ubicación.";
+        button.disabled = false;
+        button.textContent = "Intentar de nuevo";
+      }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 });
+    } catch (error) {
+      console.error("No se pudo iniciar la ubicación de la brújula:", error);
+      status.textContent = "No se pudo iniciar la solicitud de ubicación. Revisa los permisos y que la conexión sea segura.";
+      button.disabled = false;
+      button.textContent = "Intentar de nuevo";
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  initJerusalemCompass();
   const btnRefreshTodayBiblical = document.getElementById("btnRefreshTodayBiblical");
   const btnLoadFeasts = document.getElementById("btnLoadFeasts");
   const btnPrevMonth = document.getElementById("btnPrevMonth");
@@ -1697,7 +1770,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnTodayMonth = document.getElementById("btnTodayMonth");
 
   if (btnLoadFeasts) {
-    btnLoadFeasts.addEventListener("click", loadFeasts);
+    btnLoadFeasts.addEventListener("click", () => { loadTodayBiblicalPanel(); loadFeasts(); });
   }
 
   if (btnRefreshTodayBiblical) {
@@ -1724,14 +1797,18 @@ document.addEventListener("DOMContentLoaded", () => {
         normalizeDateInput(calendarState.feastData.civil_date) || new Date();
       calendarState.selectedDate = calendarState.feastData.civil_date;
 
+      DayPanels.sources(document.getElementById("monthSources"), null);
       await loadBiblicalCalendarMonth(calendarState.currentDate);
       renderCalendar(calendarState.feastData);
       renderDayDetail(calendarState.selectedDate, groupFeastsByVisibleDay(calendarState.feastData));
+      DayPanels.sources(document.getElementById("monthSources"), calendarState.selectedDate);
 
       const todayVerseData = buildVerseContextForDate(calendarState.feastData.civil_date);
       renderBiblicalVersesSection(todayVerseData);
     });
   }
+  setInterval(() => { if (!document.hidden) loadTodayBiblicalPanel(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadTodayBiblicalPanel(); });
   loadTodayBiblicalPanel();
   setupDetailToggle();
   loadFeasts();
@@ -1741,4 +1818,3 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 });
-

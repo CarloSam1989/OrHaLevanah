@@ -656,3 +656,119 @@ button:hover {
     font-size: 0.72rem;
   }
 }
+.current-day-summary h2 { font-size: 1.1rem; margin: 8px 0 12px; }
+.current-day-summary p { margin: 10px 0; }
+.current-day-summary small { display: block; line-height: 1.4; }
+.current-day-summary .day-indicators { gap: 6px; font-size: 0.875rem; }
+.day-indicators { display: flex; flex-wrap: wrap; gap: 8px; }
+.day-indicators span { padding: 7px 10px; border: 1px solid var(--border, #38465b); border-radius: 12px; }
+.month-sources { overflow-wrap: anywhere; scroll-margin-block: 100px; }
+.month-sources[hidden] { display: none; }
+.month-sources a { color: inherit; text-decoration: underline; }
+
+.today-compass-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 16px;
+}
+
+.today-compass-row > * { min-width: 0; }
+
+.compass-card {
+  background:
+    radial-gradient(circle at top right, rgba(255, 215, 90, 0.1), transparent 34%),
+    var(--card-bg);
+}
+
+.compass-layout { display: flex; align-items: center; gap: 24px; }
+
+.compass-dial {
+  position: relative;
+  flex: 0 0 164px;
+  width: 164px;
+  height: 164px;
+  border: 2px solid rgba(255, 215, 90, 0.48);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.07) 0 3px, transparent 4px),
+    repeating-conic-gradient(from -1deg, rgba(255, 255, 255, 0.22) 0 1deg, transparent 1deg 30deg),
+    rgba(7, 17, 31, 0.48);
+  box-shadow: 0 0 28px rgba(255, 215, 90, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.28);
+}
+
+.compass-dial::before {
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: inherit;
+  content: "";
+}
+
+.compass-north,
+.compass-east,
+.compass-south,
+.compass-west {
+  position: absolute;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.compass-north { top: 10px; left: 50%; color: #facc6b; transform: translateX(-50%); }
+.compass-east { top: 50%; right: 11px; transform: translateY(-50%); }
+.compass-south { bottom: 10px; left: 50%; transform: translateX(-50%); }
+.compass-west { top: 50%; left: 11px; transform: translateY(-50%); }
+
+.compass-needle {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transform-origin: center;
+  transition: transform 180ms ease-out;
+}
+
+.compass-needle::before {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 24px;
+  height: 53px;
+  background: linear-gradient(to bottom, #facc6b 0 50%, #f4f7fb 50% 100%);
+  clip-path: polygon(50% 0, 100% 100%, 50% 82%, 0 100%);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.compass-needle-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fff4cf;
+  border-radius: 50%;
+  background: #bd8e39;
+  box-shadow: 0 0 10px rgba(255, 215, 90, 0.65);
+  transform: translate(-50%, -50%);
+}
+
+.compass-info { min-width: 0; }
+.compass-bearing { display: block; color: #facc6b; font-size: 2rem; }
+.compass-status,
+.compass-distance { color: var(--muted); line-height: 1.5; }
+.compass-action { width: 100%; }
+.compass-note { margin: 14px 0 0; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .today-compass-row { grid-template-columns: 1fr; gap: 0; }
+}
+
+@media (max-width: 640px) {
+  .compass-layout { gap: 16px; }
+  .compass-dial { flex-basis: 136px; width: 136px; height: 136px; }
+  .compass-needle::before { top: 23px; height: 46px; }
+  .compass-info { flex: 1; }
+  .compass-bearing { font-size: 1.6rem; }
+}
