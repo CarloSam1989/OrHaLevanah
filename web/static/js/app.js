@@ -679,6 +679,7 @@ async function loadBiblicalMonthInfo() {
 async function loadBiblicalCalendarMonth(date) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
+  calendarState.biblicalCalendarDays.clear();
   const payload = await fetchJson(
     `/api/biblical/jerusalem/calendar?year=${year}&month=${month}`
   );
@@ -721,7 +722,7 @@ function getTodayShabbatState(civilDate, afterSunset) {
 function buildTodayBiblicalHtml(todayData, feastData, monthData) {
   const biblicalMonth = feastData?.biblical_month ?? todayData?.biblical_month ?? "-";
   const biblicalMonthName =
-    typeof biblicalMonth === "number" ? getBiblicalMonthName(biblicalMonth) : "-";
+    typeof biblicalMonth === "number" ? getBiblicalMonthName(biblicalMonth) : "Mes no disponible";
   const monthFeasts = (feastData?.all_feasts || []).filter(
     (feast) => Number(feast?.biblical_month) === Number(biblicalMonth)
   );
@@ -735,7 +736,7 @@ function buildTodayBiblicalHtml(todayData, feastData, monthData) {
           </div>
         </article>
       `).join("")
-    : `<p class="month-feasts-empty">Este mes no contiene fiestas bíblicas señaladas.</p>`;
+    : `<p class="month-feasts-empty">${feastData ? "No hay fiestas registradas para este mes." : "Las fiestas del mes no están disponibles sin conexión al servicio."}</p>`;
 
   return `
     <div class="month-head-grid">
@@ -744,8 +745,8 @@ function buildTodayBiblicalHtml(todayData, feastData, monthData) {
         <div class="month-start-title">
           <h1>${escapeHtml(biblicalMonthName)}</h1>
         </div>
-        <strong class="month-start-date">${escapeHtml(monthData?.month_start || "-")}</strong>
-        <button id="showMonthSources" type="button">Cabeza de mes · Ver fuentes</button>
+        <strong class="month-start-date">${escapeHtml(monthData?.month_start || "Fecha no disponible")}</strong>
+        ${monthData?.month_start ? `<button id="showMonthSources" type="button">Cabeza de mes · Ver fuentes</button>` : ""}
       </div>
 
       <div class="month-feasts-block">
@@ -762,102 +763,98 @@ async function loadTodayBiblicalPanel() {
 
   panel.innerHTML = `<div class="today-biblical-loading">Cargando inicio y fiestas del mes...</div>`;
 
-  try {
-    const localCivilDate = formatDateKey(new Date());
-    const previousLocalDate = calendarState.lastLocalDate;
-    const [feastPayload, monthPayload] = await Promise.all([
-      fetchJson("/api/feasts/jerusalem"),
-      fetchJson("/api/biblical/jerusalem/month"),
-    ]);
+  const localCivilDate = formatDateKey(new Date());
+  const previousLocalDate = calendarState.lastLocalDate;
+  const [feastResult, monthResult] = await Promise.allSettled([
+    fetchJson("/api/feasts/jerusalem"),
+    fetchJson("/api/biblical/jerusalem/month"),
+  ]);
+  const feastData = feastResult.status === "fulfilled" ? feastResult.value?.data : null;
+  const monthData = monthResult.status === "fulfilled" ? monthResult.value?.data : null;
+  const failures = [
+    feastResult.status === "rejected" ? `Fiestas: ${feastResult.reason.message}` : "",
+    monthResult.status === "rejected" ? `Día y mes: ${monthResult.reason.message}` : "",
+  ].filter(Boolean);
 
-    const followsLocalToday = !previousLocalDate || calendarState.selectedDate === previousLocalDate;
-    let localMonthChanged = false;
-    if (followsLocalToday) {
-      calendarState.selectedDate = localCivilDate;
-      if (!previousLocalDate || formatDateKey(calendarState.currentDate) === previousLocalDate) {
-        const localDate = normalizeDateInput(localCivilDate);
-        localMonthChanged = calendarState.currentDate.getMonth() !== localDate.getMonth() ||
-          calendarState.currentDate.getFullYear() !== localDate.getFullYear();
-        calendarState.currentDate = localDate;
-      }
+  const followsLocalToday = !previousLocalDate || calendarState.selectedDate === previousLocalDate;
+  let localMonthChanged = false;
+  if (followsLocalToday) {
+    calendarState.selectedDate = localCivilDate;
+    if (!previousLocalDate || formatDateKey(calendarState.currentDate) === previousLocalDate) {
+      const localDate = normalizeDateInput(localCivilDate);
+      localMonthChanged = calendarState.currentDate.getMonth() !== localDate.getMonth() ||
+        calendarState.currentDate.getFullYear() !== localDate.getFullYear();
+      calendarState.currentDate = localDate;
     }
-    calendarState.lastLocalDate = localCivilDate;
-
-    const todayData = monthPayload?.data || {};
-    const feastData = feastPayload?.data || {};
-    const monthData = monthPayload?.data || {};
-
-    const previousCivilDate = calendarState.feastData?.civil_date;
-    calendarState.biblicalMonthInfo = monthData;
-    calendarState.feastData = feastData;
-    if (previousCivilDate && previousCivilDate !== feastData.civil_date) {
-      calendarState.biblicalCalendarDays.clear();
-      await loadBiblicalCalendarMonth(calendarState.currentDate);
-      renderCalendar(feastData);
-    }
-    if (localMonthChanged) {
-      calendarState.biblicalCalendarDays.clear();
-      await loadBiblicalCalendarMonth(calendarState.currentDate);
-      renderCalendar(feastData);
-    } else if (previousLocalDate !== localCivilDate) {
-      renderCalendar(feastData);
-    }
-
-    panel.innerHTML = buildTodayBiblicalHtml(todayData, feastData, monthData);
-    DayPanels.today(document.getElementById("currentDaySummary"), monthData, feastData, localCivilDate);
-    document.getElementById("showMonthSources")?.addEventListener("click", () => {
-      DayPanels.sources(document.getElementById("monthSources"), monthData.month_start, "", true);
-    });
-
-    const shabbatState = getTodayShabbatState(
-      feastData?.civil_date || todayData?.civil_date || monthData?.civil_date,
-      monthData?.after_sunset ?? todayData?.after_sunset ?? false
-    );
-
-    const currentCivilDate =
-      feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "";
-
-    const verseData = {
-      ...feastData,
-      civil_date: currentCivilDate,
-      biblical_date: feastData?.biblical_date || todayData?.biblical_date || "",
-      biblical_month: feastData?.biblical_month ?? todayData?.biblical_month ?? 0,
-      biblical_day: feastData?.biblical_day ?? todayData?.biblical_day ?? 0,
-      after_sunset: monthData?.after_sunset ?? todayData?.after_sunset ?? false,
-      is_shabbat: shabbatState.active,
-      is_month_start: monthData?.month_start === currentCivilDate,
-      month_start_type:
-        monthData?.month_start === currentCivilDate
-          ? "current"
-          : monthData?.next_month_start === currentCivilDate
-            ? "next"
-            : null,
-      omer_day: feastData?.omer?.omer_day_today || null
-    };
-
-    renderBiblicalVersesSection(verseData);
-
-  } catch (error) {
-    console.error("Error cargando el panel Hoy bíblico:", error);
-    document.getElementById("currentDaySummary").textContent = "No se pudo actualizar la información de hoy.";
-    panel.innerHTML = `
-      <div class="today-biblical-error">
-        No se pudo cargar el resumen bíblico de hoy.
-        <br>
-        <small>${escapeHtml(error.message)}</small>
-      </div>
-    `;
-
-    renderBiblicalVersesSection({
-      biblical_month: 0,
-      biblical_day: 0,
-      civil_date: "",
-      biblical_date: "",
-      after_sunset: false,
-      current_feasts: [],
-      is_shabbat: false
-    });
   }
+  calendarState.lastLocalDate = localCivilDate;
+
+  const todayData = monthData || feastData || { civil_date: localCivilDate };
+  const previousCivilDate = calendarState.feastData?.civil_date;
+  calendarState.biblicalMonthInfo = monthData;
+  calendarState.feastData = feastData || DayPanels.offlineCalendarData(
+    normalizeDateInput(localCivilDate)
+  );
+  if (previousCivilDate && previousCivilDate !== feastData?.civil_date) {
+    try {
+      await loadBiblicalCalendarMonth(calendarState.currentDate);
+    } catch (error) {
+      failures.push(`Días bíblicos: ${error.message}`);
+    }
+    renderCalendar(calendarState.feastData);
+  } else if (localMonthChanged) {
+    try {
+      await loadBiblicalCalendarMonth(calendarState.currentDate);
+    } catch (error) {
+      failures.push(`Días bíblicos: ${error.message}`);
+    }
+    renderCalendar(calendarState.feastData);
+  } else if (previousLocalDate !== localCivilDate) {
+    renderCalendar(calendarState.feastData);
+  }
+
+  panel.innerHTML = buildTodayBiblicalHtml(todayData, feastData, monthData);
+  if (failures.length) {
+    const warning = document.createElement("p");
+    warning.className = "today-biblical-error";
+    warning.textContent = `Información incompleta: ${failures.join(" · ")}`;
+    panel.prepend(warning);
+  }
+  DayPanels.today(document.getElementById("currentDaySummary"), todayData, feastData, localCivilDate);
+  document.getElementById("showMonthSources")?.addEventListener("click", () => {
+    DayPanels.sources(document.getElementById("monthSources"), monthData.month_start, "", true);
+  });
+
+  const afterSunset = monthData?.after_sunset ?? todayData?.after_sunset;
+  const shabbatState = typeof afterSunset === "boolean"
+    ? getTodayShabbatState(
+        feastData?.civil_date || todayData?.civil_date || monthData?.civil_date,
+        afterSunset
+      )
+    : { active: false, upcoming: false, label: "" };
+
+  const currentCivilDate =
+    feastData?.civil_date || todayData?.civil_date || monthData?.civil_date || "";
+
+  const verseData = {
+    ...feastData,
+    civil_date: currentCivilDate,
+    biblical_date: feastData?.biblical_date || todayData?.biblical_date || "",
+    biblical_month: feastData?.biblical_month ?? todayData?.biblical_month ?? 0,
+    biblical_day: feastData?.biblical_day ?? todayData?.biblical_day ?? 0,
+    after_sunset: monthData?.after_sunset ?? todayData?.after_sunset,
+    is_shabbat: shabbatState.active,
+    is_month_start: monthData?.month_start === currentCivilDate,
+    month_start_type:
+      monthData?.month_start === currentCivilDate
+        ? "current"
+        : monthData?.next_month_start === currentCivilDate
+          ? "next"
+          : null,
+    omer_day: feastData?.omer?.omer_day_today || null
+  };
+
+  renderBiblicalVersesSection(verseData);
 }
 
 function serializeFeastForDataset(feast) {
@@ -1519,6 +1516,33 @@ function renderCalendar(data) {
       const dateKey = el.getAttribute("data-date");
       calendarState.selectedDate = dateKey;
       renderCalendar(data);
+      if (data.calendar_data_unavailable) {
+        const calendarDay = calendarState.biblicalCalendarDays.get(dateKey);
+        const detailTitle = document.getElementById("calendarDetailTitle");
+        const detailContent = document.getElementById("calendarDetailContent");
+        if (detailTitle) detailTitle.textContent = `Fecha civil · ${formatDateLabel(normalizeDateInput(dateKey))}`;
+        if (detailContent) {
+          detailContent.textContent = calendarDay
+            ? `Día bíblico ${calendarDay.biblical_day}, mes ${calendarDay.biblical_month}; inicio calculado por el servidor: ${calendarDay.month_start}. Las fiestas no están disponibles.`
+            : "La fecha civil está disponible, pero no se pueden confirmar el día bíblico, las fiestas ni el inicio de mes sin respuesta del servicio.";
+        }
+        const events = document.getElementById("selectedDayEvents");
+        if (events) {
+          events.hidden = false;
+          const heading = document.createElement("h3");
+          heading.textContent = `Fecha civil · ${formatDateLabel(normalizeDateInput(dateKey))}`;
+          const message = document.createElement("p");
+          message.textContent = calendarDay
+            ? `Día bíblico ${calendarDay.biblical_day} · Mes ${calendarDay.biblical_month} · Inicio calculado ${calendarDay.month_start}. La lista de fiestas no está disponible.`
+            : "No se puede confirmar el día bíblico, las fiestas ni el inicio de mes sin respuesta del servicio.";
+          events.replaceChildren(heading, message);
+        }
+        DayPanels.sources(
+          document.getElementById("monthSources"),
+          calendarDay?.biblical_day === 1 ? dateKey : null
+        );
+        return;
+      }
       renderDayDetail(dateKey, groupFeastsByVisibleDay(data));
       const dayOfWeek = normalizeDateInput(dateKey).getDay();
       DayPanels.dayEvents(document.getElementById("selectedDayEvents"), dateKey, groupFeastsByVisibleDay(data).get(dateKey) || [], getOmerDayForDate(dateKey), dayOfWeek === 5 ? "Shabat (desde el atardecer)" : dayOfWeek === 6 ? "Shabat (hasta el atardecer)" : "");
@@ -1552,6 +1576,43 @@ function renderFeastsData(payload) {
   renderCalendar(data);
 }
 
+async function loadMoonSightings() {
+  const panel = document.getElementById("moonSightingsCache");
+  if (!panel) return;
+
+  let cachedReports = null;
+  try {
+    const response = await fetch("/data/moon_sightings.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    if (!Array.isArray(payload?.reports)) throw new Error("Formato de caché lunar inválido");
+    cachedReports = payload.reports;
+    DayPanels.moonSightings(panel, cachedReports, "cache");
+  } catch (error) {
+    console.warn("No se pudo leer la copia de reportes lunares:", error);
+  }
+
+  try {
+    const payload = await fetchJson("/api/moon/jerusalem/sightings");
+    if (!Array.isArray(payload?.data)) throw new Error("Formato de reportes lunares inválido");
+    DayPanels.moonSightings(panel, payload.data, "api");
+  } catch (error) {
+    if (!cachedReports) {
+      panel.hidden = false;
+      panel.textContent = `No se pudieron consultar las observaciones lunares ni su copia local: ${error.message}`;
+    } else {
+      console.warn("El servicio no actualizó los reportes lunares; se conserva la copia publicada:", error);
+    }
+  }
+}
+
+function setCalendarDataStatus(message) {
+  const status = document.getElementById("calendarDataStatus");
+  if (!status) return;
+  status.hidden = !message;
+  status.textContent = message;
+}
+
 async function loadFeasts() {
   DayPanels.sources(document.getElementById("monthSources"), null);
   const summary = document.getElementById("feastsSummary");
@@ -1570,32 +1631,44 @@ async function loadFeasts() {
     grid.innerHTML = "";
   }
 
-  try {
-    const [feastPayload] = await Promise.all([
-      fetchJson("/api/feasts/jerusalem"),
-      loadBiblicalMonthInfo(),
-    ]);
+  const civilDate = formatDateKey(new Date());
+  calendarState.currentDate = normalizeDateInput(civilDate) || new Date();
+  calendarState.selectedDate = civilDate;
+  calendarState.biblicalCalendarDays.clear();
 
-    const civilDate = formatDateKey(new Date());
-    calendarState.currentDate = normalizeDateInput(civilDate) || new Date();
-    calendarState.selectedDate = civilDate || null;
+  const [feastResult, monthResult, calendarResult] = await Promise.allSettled([
+    fetchJson("/api/feasts/jerusalem"),
+    loadBiblicalMonthInfo(),
+    loadBiblicalCalendarMonth(calendarState.currentDate),
+  ]);
+  const feastPayload = feastResult.status === "fulfilled" ? feastResult.value : null;
+  const errors = [
+    feastResult.status === "rejected" ? `Fiestas bíblicas: ${feastResult.reason.message}` : "",
+    monthResult.status === "rejected" ? `Resumen del mes: ${monthResult.reason.message}` : "",
+    calendarResult.status === "rejected" ? `Días y meses bíblicos: ${calendarResult.reason.message}` : "",
+  ].filter(Boolean);
 
-    await loadBiblicalCalendarMonth(calendarState.currentDate);
+  calendarState.biblicalMonthInfo = monthResult.status === "fulfilled"
+    ? calendarState.biblicalMonthInfo
+    : null;
+
+  if (feastPayload?.data) {
     renderFeastsData(feastPayload);
-  } catch (error) {
-    console.error("Error cargando fiestas:", error);
-
+  } else {
+    calendarState.feastData = DayPanels.offlineCalendarData(calendarState.currentDate);
     if (summary) {
-      summary.innerHTML = `<div class="empty-state">${error.message}</div>`;
+      summary.textContent = "Las fiestas bíblicas no están disponibles sin conexión al servicio.";
     }
-
     if (detailPanel) {
-      detailPanel.innerHTML = "No se pudo cargar el detalle.";
+      detailPanel.textContent = "Selecciona un día para consultar su fecha civil. No se asigna un día bíblico sin datos del servidor.";
     }
+    renderCalendar(calendarState.feastData);
+  }
 
-    if (grid) {
-      grid.innerHTML = "";
-    }
+  if (errors.length) {
+    setCalendarDataStatus(`Datos parciales: ${errors.join(" · ")}. Se muestran las fechas civiles y cualquier dato bíblico que sí esté disponible; no se estiman avistamientos ni inicios de mes.`);
+  } else {
+    setCalendarDataStatus("");
   }
 }
 
@@ -1610,7 +1683,12 @@ async function moveCalendarMonth(offset) {
     1
   );
 
-  await loadBiblicalCalendarMonth(calendarState.currentDate);
+  try {
+    await loadBiblicalCalendarMonth(calendarState.currentDate);
+    setCalendarDataStatus("");
+  } catch (error) {
+    setCalendarDataStatus(`No se pudieron consultar los días y meses bíblicos de este mes: ${error.message}. Se conservan las fechas civiles y las fiestas ya cargadas.`);
+  }
   renderCalendar(calendarState.feastData);
 }
 
@@ -1793,12 +1871,27 @@ document.addEventListener("DOMContentLoaded", () => {
     btnTodayMonth.addEventListener("click", async () => {
       if (!calendarState.feastData) return;
 
-      calendarState.currentDate =
-        normalizeDateInput(calendarState.feastData.civil_date) || new Date();
-      calendarState.selectedDate = calendarState.feastData.civil_date;
+      const todayDate = formatDateKey(new Date());
+      calendarState.currentDate = normalizeDateInput(todayDate) || new Date();
+      calendarState.selectedDate = todayDate;
 
       DayPanels.sources(document.getElementById("monthSources"), null);
-      await loadBiblicalCalendarMonth(calendarState.currentDate);
+      if (calendarState.feastData.calendar_data_unavailable) {
+        calendarState.biblicalCalendarDays.clear();
+        try {
+          await loadBiblicalCalendarMonth(calendarState.currentDate);
+          setCalendarDataStatus("");
+        } catch (error) {
+          setCalendarDataStatus(`No se pudieron consultar los días y meses bíblicos de hoy: ${error.message}. Se muestra la fecha civil.`);
+        }
+        renderCalendar(calendarState.feastData);
+        return;
+      }
+      try {
+        await loadBiblicalCalendarMonth(calendarState.currentDate);
+      } catch (error) {
+        setCalendarDataStatus(`No se pudieron consultar los días y meses bíblicos de hoy: ${error.message}. Se mantienen las fiestas ya cargadas.`);
+      }
       renderCalendar(calendarState.feastData);
       renderDayDetail(calendarState.selectedDate, groupFeastsByVisibleDay(calendarState.feastData));
       DayPanels.sources(document.getElementById("monthSources"), calendarState.selectedDate);
@@ -1810,6 +1903,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(() => { if (!document.hidden) loadTodayBiblicalPanel(); }, 60000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) loadTodayBiblicalPanel(); });
   loadTodayBiblicalPanel();
+  loadMoonSightings();
   setupDetailToggle();
   loadFeasts();
   window.addEventListener("resize", () => {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Or HaLevanah</title>
   <meta name="description" content="Calendario bíblico observacional basado en Jerusalén. Fiestas bíblicas, Shabat, Omer y cabeza de mes.">
-  <link rel="stylesheet" href="/static/css/styles.css?v=23">
+  <link rel="stylesheet" href="/static/css/styles.css?v=24">
   <link rel="manifest" href="/static/manifest.json">
   <link rel="icon" type="image/x-icon" href="/static/img/logo.ico">
 </head>
@@ -50,6 +50,7 @@
         <p class="compass-note">Mantén el teléfono en vertical para orientar la flecha. La ubicación se usa solo en este dispositivo y no se envía al servidor.</p>
       </section>
       </div>
+      <section id="moonSightingsCache" class="verse-group month-sources moon-sightings-cache" aria-live="polite" hidden></section>
 
       <div class="top-row-grid">
     <section class="month-head-card" aria-label="Resumen del mes bíblico">
@@ -100,6 +101,7 @@
           <div class="calendar-header">
             <h3 id="calendarTitle">Calendario bíblico</h3>
           </div>
+          <p id="calendarDataStatus" class="calendar-data-status" role="status" aria-live="polite" hidden></p>
 
           <div class="calendar-weekdays">
             <div>Dom</div>
@@ -208,7 +210,7 @@
 
   <div id="calendarHoverCard" class="calendar-hover-card-simple"></div>
 
-  <script src="/static/js/day-panels.js?v=2"></script>
-  <script src="/static/js/app.js?v=19"></script>
+  <script src="/static/js/day-panels.js?v=3"></script>
+  <script src="/static/js/app.js?v=20"></script>
 </body>
 </html>

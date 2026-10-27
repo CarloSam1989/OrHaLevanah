@@ -41,6 +41,9 @@ func main() {
 	// Archivos estáticos
 	fs := http.FileServer(http.Dir("./web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux.HandleFunc("/data/moon_sightings.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./data/moon_sightings.json")
+	})
 
 	// Página pública de la comunidad y aplicación existente.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

@@ -19,3 +19,8 @@ fs.cpSync(
   path.join(output, 'static'),
   { recursive: true }
 );
+fs.mkdirSync(path.join(output, 'data'), { recursive: true });
+fs.copyFileSync(
+  path.join(root, 'data', 'moon_sightings.json'),
+  path.join(output, 'data', 'moon_sightings.json')
+);

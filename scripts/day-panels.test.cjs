@@ -18,7 +18,7 @@ function setup(fetch) {
   return { panels: context.DayPanels, errors };
 }
 function response(date, isHead, sources = []) {
-  return { ok: true, json: async () => ({ success: true, data: { date, is_month_start: isHead, sources } }) };
+  return { ok: true, text: async () => JSON.stringify({ success: true, data: { date, is_month_start: isHead, sources } }) };
 }
 
 test('ordinary day hides sources; a head without evidence explains the empty state', async () => {
@@ -59,12 +59,46 @@ test('rapid date changes discard a late response', async () => {
 });
 
 test('storage/network error is not presented as an empty period', async () => {
-  const { panels, errors } = setup(async () => ({ ok: false, status: 500 }));
+  const { panels, errors } = setup(async () => ({ ok: false, status: 500, text: async () => '{"message":"cache no disponible"}' }));
   const el = new Element();
   await panels.sources(el, '2026-08-14');
   assert.match(el.text(), /No se pudieron consultar/);
+  assert.match(el.text(), /cache no disponible/);
   assert.doesNotMatch(el.text(), /No existen fuentes/);
   assert.equal(errors.length, 1);
+});
+
+test('HTML 404 bodies are not dumped into the user-facing API error', async () => {
+  const { panels } = setup(async () => ({ ok: false, status: 404, text: async () => '<html><body>Application not found</body></html>' }));
+  await assert.rejects(panels.json('/api/feasts/jerusalem'), error => {
+    assert.match(error.message, /Error 404 al consultar información/);
+    assert.doesNotMatch(error.message, /<html>|Application not found/);
+    return true;
+  });
+});
+
+test('calendar fallback contains only the requested civil date and no inferred biblical dates', () => {
+  const { panels } = setup();
+  const data = panels.offlineCalendarData(new Date(2026, 9, 27));
+  assert.equal(data.civil_date, '2026-10-27');
+  assert.equal(data.all_feasts.length, 0);
+  assert.equal(data.calendar_data_unavailable, true);
+  assert.equal('biblical_day' in data, false);
+  assert.equal('month_start' in data, false);
+});
+
+test('cached moon reports show only confirmed records and use safe source links', () => {
+  const { panels } = setup();
+  const el = new Element();
+  panels.moonSightings(el, [
+    { date: '2026-10-12', country: 'Israel', status: 'confirmed', biblical_month: 8, confirmation_method: 'day_30_declaration', source_name: 'Devorah', source_url: 'https://example.test/report' },
+    { date: '2026-10-13', country: 'Israel', status: 'pending', source_url: 'javascript:alert(1)' }
+  ], 'cache');
+  assert.equal(el.hidden, false);
+  assert.match(el.text(), /copia de los reportes/i);
+  assert.match(el.text(), /Declaración del día 30/);
+  assert.doesNotMatch(el.text(), /2026-10-13/);
+  assert.equal(el.children[2].children[0].children[3].rel, 'noopener noreferrer');
 });
 
 test('changing calendar month cancels a pending source display without another request', async () => {
@@ -95,6 +129,15 @@ test('today follows the server date and updates after a date change', () => {
   panels.today(el, { civil_date: '2026-09-29' }, { civil_date: '2026-09-28', current_feasts: [{ name: 'Old feast' }] });
   assert.doesNotMatch(el.text(), /Old feast/);
   assert.match(el.text(), /No se pudieron consultar/);
+});
+
+test('partial today data does not invent an atardecer transition or biblical day', () => {
+  const { panels } = setup();
+  const el = new Element();
+  panels.today(el, { civil_date: '2026-10-27' }, null, '2026-10-27');
+  assert.match(el.text(), /Datos bíblicos no disponibles/);
+  assert.doesNotMatch(el.text(), /Antes del atardecer/);
+  assert.doesNotMatch(el.text(), /Día bíblico —/);
 });
 
 test('parallel consumers share one request without keeping stale daily data', async () => {

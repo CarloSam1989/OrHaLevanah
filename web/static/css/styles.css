@@ -1767,6 +1767,11 @@ input::placeholder {
 .month-sources { margin-bottom: 18px; overflow-wrap: anywhere; scroll-margin-block: 20px; }
 .month-sources[hidden] { display: none; }
 .month-sources a { color: var(--logo-gold-soft); }
+.moon-sightings-cache { margin-top: 16px; }
+.moon-sightings-cache ul { margin: 0; padding-left: 1.25rem; }
+.moon-sightings-cache li { margin-block: .45rem; }
+.calendar-data-status { margin: 0 0 14px; padding: 12px 14px; border: 1px solid rgba(230, 211, 160, .28); border-radius: 12px; color: var(--logo-cream); background: rgba(217, 173, 69, .1); overflow-wrap: anywhere; }
+.calendar-data-status[hidden] { display: none; }
 #showMonthSources { margin-top: 10px; white-space: normal; }
 
 /* Today keeps its gold cue even when the day is selected or has a feast. */
