@@ -157,12 +157,12 @@ const BIBLICAL_VERSE_LIBRARY = {
     {
       reference: "Eclesiastés 3:1",
       text: "Todo tiene su tiempo, y todo lo que se quiere debajo del cielo tiene su hora.",
-      note: "El Eterno estableció tiempos para cada propósito."
+      note: "IAUE estableció tiempos para cada propósito."
     },
     {
       reference: "Salmo 90:12",
       text: "Enséñanos de tal modo a contar nuestros días, que traigamos al corazón sabiduría.",
-      note: "Sabiduría para vivir conforme al tiempo del Eterno."
+      note: "Sabiduría para vivir conforme al tiempo de IAUE."
     }
   ]
 }; 
