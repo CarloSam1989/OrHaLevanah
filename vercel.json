@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/app",
+      "destination": "/app/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://orhalevanah-production.up.railway.app/api/:path*"
+    }
+  ]
+}
