@@ -87,6 +87,17 @@
       "biblical_month": 6,
       "confirmation_method": "israel_eyewitness",
       "checked_at": "2026-10-21T13:04:45.2657107Z"
+    },
+    {
+      "date": "2026-10-12",
+      "country": "Israel",
+      "location": "Israel",
+      "status": "confirmed",
+      "source_name": "Devorah's Date Tree",
+      "source_url": "https://mailchi.mp/devorahsdatetree/8th-biblical-month-26-crescent-moon-report",
+      "biblical_month": 8,
+      "confirmation_method": "day_30_declaration",
+      "checked_at": "2026-10-21T13:04:47.7244967Z"
     }
   ]
 }
